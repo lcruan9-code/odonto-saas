@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { SignOutButton } from "./sign-out-button";
 
 const NAV = [
   { href: "/dashboard/agenda", label: "Agenda" },
@@ -6,7 +9,9 @@ const NAV = [
   { href: "/dashboard/horarios", label: "Horários" },
 ];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions);
+
   return (
     <div className="flex min-h-screen">
       <aside className="w-56 border-r bg-white p-4">
@@ -23,7 +28,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
       </aside>
-      <main className="flex-1 p-6">{children}</main>
+      <div className="flex-1">
+        <header className="flex items-center justify-between border-b bg-white px-6 py-3">
+          <span className="text-sm text-slate-600">{session?.user.name}</span>
+          <SignOutButton />
+        </header>
+        <main className="p-6">{children}</main>
+      </div>
     </div>
   );
 }

@@ -31,7 +31,7 @@ async function main() {
     },
   });
 
-  const passwordHash = await bcrypt.hash("admin123", 10);
+  const adminPasswordHash = await bcrypt.hash("admin123", 10);
   await prisma.user.upsert({
     where: { email: "admin@clinicaexemplo.com.br" },
     update: {},
@@ -39,8 +39,32 @@ async function main() {
       clinicId: clinic.id,
       name: "Administrador",
       email: "admin@clinicaexemplo.com.br",
-      passwordHash,
+      passwordHash: adminPasswordHash,
       role: Role.ADMIN,
+    },
+  });
+
+  const dentistPasswordHash = await bcrypt.hash("dentista123", 10);
+  const dentistUser = await prisma.user.upsert({
+    where: { email: "dentista@clinicaexemplo.com.br" },
+    update: {},
+    create: {
+      clinicId: clinic.id,
+      name: "Dra. Ana Souza",
+      email: "dentista@clinicaexemplo.com.br",
+      passwordHash: dentistPasswordHash,
+      role: Role.DENTIST,
+    },
+  });
+
+  await prisma.dentist.upsert({
+    where: { userId: dentistUser.id },
+    update: {},
+    create: {
+      clinicId: clinic.id,
+      userId: dentistUser.id,
+      specialty: "Clínico Geral",
+      cro: "CRO-SP 12345",
     },
   });
 

@@ -1,15 +1,15 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export default async function AgendaPage() {
-  const clinic = await prisma.clinic.findFirst();
-  const appointments = clinic
-    ? await prisma.appointment.findMany({
-        where: { clinicId: clinic.id },
-        include: { patient: true, dentist: { include: { user: true } } },
-        orderBy: { startAt: "asc" },
-        take: 20,
-      })
-    : [];
+  const session = await getServerSession(authOptions);
+  const appointments = await prisma.appointment.findMany({
+    where: { clinicId: session!.user.clinicId },
+    include: { patient: true, dentist: { include: { user: true } } },
+    orderBy: { startAt: "asc" },
+    take: 20,
+  });
 
   return (
     <div>

@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 export const patientSchema = z.object({
-  clinicId: z.string().min(1),
   name: z.string().min(2),
   cpf: z.string().optional(),
   birthDate: z.coerce.date().optional(),
@@ -19,7 +18,6 @@ export const patientSchema = z.object({
 });
 
 export const appointmentSchema = z.object({
-  clinicId: z.string().min(1),
   patientId: z.string().min(1),
   dentistId: z.string().min(1),
   startAt: z.coerce.date(),
@@ -28,7 +26,6 @@ export const appointmentSchema = z.object({
 });
 
 export const workingHourSchema = z.object({
-  clinicId: z.string().min(1),
   dayOfWeek: z.enum([
     "SUNDAY",
     "MONDAY",

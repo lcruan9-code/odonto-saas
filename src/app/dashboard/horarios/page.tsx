@@ -1,3 +1,5 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const DAY_LABELS: Record<string, string> = {
@@ -11,13 +13,11 @@ const DAY_LABELS: Record<string, string> = {
 };
 
 export default async function HorariosPage() {
-  const clinic = await prisma.clinic.findFirst();
-  const workingHours = clinic
-    ? await prisma.workingHour.findMany({
-        where: { clinicId: clinic.id },
-        orderBy: { dayOfWeek: "asc" },
-      })
-    : [];
+  const session = await getServerSession(authOptions);
+  const workingHours = await prisma.workingHour.findMany({
+    where: { clinicId: session!.user.clinicId },
+    orderBy: { dayOfWeek: "asc" },
+  });
 
   return (
     <div>
