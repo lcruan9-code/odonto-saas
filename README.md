@@ -100,6 +100,26 @@ prisma/
 middleware.ts
 ```
 
+## Deploy pela Vercel (pelo navegador, sem terminal)
+
+1. Acesse **vercel.com** pelo celular → login com GitHub.
+2. **Add New → Project** → selecione `lcruan9-code/odonto-saas` → branch `ccr-438bdc3f-hwaln8`.
+3. Antes de clicar em Deploy, vá em **Storage → Create Database → Postgres** e conecte ao
+   projeto — isso já injeta a variável `DATABASE_URL` automaticamente.
+4. Em **Settings → Environment Variables**, adicione:
+   - `NEXTAUTH_SECRET` — qualquer string aleatória
+   - `SEED_SECRET` — qualquer string aleatória (guarde-a, você vai usar na URL do passo 6)
+5. Clique em **Deploy**. O build já roda `prisma migrate deploy` automaticamente
+   (configurado em `package.json`), então o banco fica com as tabelas criadas.
+6. Depois do primeiro deploy, copie a URL gerada (ex: `https://odonto-saas.vercel.app`):
+   - Volte em **Settings → Environment Variables**, adicione `NEXTAUTH_URL` com essa URL
+     e clique em **Redeploy**.
+   - Pelo próprio navegador, acesse `https://SEU-DOMINIO.vercel.app/api/seed?key=SEU_SEED_SECRET`
+     uma vez para criar a clínica de demonstração, o admin e o dentista.
+7. Testar:
+   - Login: `https://SEU-DOMINIO.vercel.app/login` com `admin@clinicaexemplo.com.br` / `admin123`
+   - Agendamento público: `https://SEU-DOMINIO.vercel.app/agendar/clinica-exemplo`
+
 ## Próximos passos
 
 - Provedor real de e-mail/WhatsApp em `notifications.ts` + lembrete automático (cron/job)
