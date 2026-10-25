@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DENTIST
+  RECEPTIONIST
+}
+
+enum DayOfWeek {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum ContactType {
+  PHONE
+  WHATSAPP
+  EMAIL
+}
+
+model Clinic {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  phone         String?
+  email         String?
+  address       String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  users         User[]
+  patients      Patient[]
+  dentists      Dentist[]
+  appointments  Appointment[]
+  workingHours  WorkingHour[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  clinicId     String
+  clinic       Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(RECEPTIONIST)
+  createdAt    DateTime @default(now())
+
+  dentist      Dentist?
+}
+
+model Dentist {
+  id         String        @id @default(cuid())
+  clinicId   String
+  clinic     Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  userId     String        @unique
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialty  String?
+  cro        String?
+
+  appointments Appointment[]
+
+  @@index([clinicId])
+}
+
+model Patient {
+  id        String    @id @default(cuid())
+  clinicId  String
+  clinic    Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name      String
+  cpf       String?
+  birthDate DateTime?
+  address   String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  contacts     Contact[]
+  appointments Appointment[]
+
+  @@index([clinicId])
+}
+
+model Contact {
+  id        String      @id @default(cuid())
+  patientId String
+  patient   Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type      ContactType
+  value     String
+  isPrimary Boolean     @default(false)
+
+  @@index([patientId])
+}
+
+// Horário de funcionamento por dia da semana (ex: Seg-Sex 08:00-18:00)
+model WorkingHour {
+  id        String    @id @default(cuid())
+  clinicId  String
+  clinic    Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  dayOfWeek DayOfWeek
+  startTime String    // "08:00"
+  endTime   String    // "18:00"
+  isActive  Boolean   @default(true)
+
+  @@unique([clinicId, dayOfWeek])
+}
+
+model Appointment {
+  id        String            @id @default(cuid())
+  clinicId  String
+  clinic    Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patientId String
+  patient   Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  dentistId String
+  dentist   Dentist           @relation(fields: [dentistId], references: [id], onDelete: Cascade)
+  startAt   DateTime
+  endAt     DateTime
+  status    AppointmentStatus @default(SCHEDULED)
+  notes     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([clinicId, startAt])
+  @@index([dentistId, startAt])
+}
