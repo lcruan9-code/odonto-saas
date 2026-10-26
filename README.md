@@ -100,23 +100,33 @@ prisma/
 middleware.ts
 ```
 
+## Banco de dados (já provisionado)
+
+Projeto Supabase **odonto-saas** (região `sa-east-1`, ref `sbweorsknrbuhfbzctuu`) já criado,
+com o schema aplicado e dados de demonstração inseridos (clínica, admin, dentista, horários
+de seg-sex). Só falta ligar a Vercel a ele.
+
 ## Deploy pela Vercel (pelo navegador, sem terminal)
 
-1. Acesse **vercel.com** pelo celular → login com GitHub.
+1. Acesse **vercel.com** → login com GitHub (se Vercel já está conectado pelo GitHub, pule
+   para o Dashboard).
 2. **Add New → Project** → selecione `lcruan9-code/odonto-saas` → branch `ccr-438bdc3f-hwaln8`.
-3. Antes de clicar em Deploy, vá em **Storage → Create Database → Postgres** e conecte ao
-   projeto — isso já injeta a variável `DATABASE_URL` automaticamente.
-4. Em **Settings → Environment Variables**, adicione:
+3. Em **Settings → Environment Variables**, adicione:
+   - `DATABASE_URL` — no Supabase, abra o projeto **odonto-saas** → **Project Settings →
+     Database → Connection string** → aba **Transaction pooler** (porta `6543`) → copie a URI
+     e substitua `[YOUR-PASSWORD]` pela senha do banco (gerada na criação do projeto, visível
+     ali mesmo ou redefinível em **Database → Reset password**)
+   - `DIRECT_URL` — mesma tela, aba **Session pooler** ou **Direct connection** (porta `5432`),
+     mesma senha
    - `NEXTAUTH_SECRET` — qualquer string aleatória
-   - `SEED_SECRET` — qualquer string aleatória (guarde-a, você vai usar na URL do passo 6)
-5. Clique em **Deploy**. O build já roda `prisma migrate deploy` automaticamente
-   (configurado em `package.json`), então o banco fica com as tabelas criadas.
-6. Depois do primeiro deploy, copie a URL gerada (ex: `https://odonto-saas.vercel.app`):
+   - `SEED_SECRET` — qualquer string aleatória (já não é necessária para os dados de
+     demonstração, mas fica disponível para repopular se precisar)
+4. Clique em **Deploy**. O build roda `prisma migrate deploy`; como a migration inicial já foi
+   aplicada diretamente no Supabase, ele só confirma que está tudo sincronizado (não recria nada).
+5. Depois do primeiro deploy, copie a URL gerada (ex: `https://odonto-saas.vercel.app`):
    - Volte em **Settings → Environment Variables**, adicione `NEXTAUTH_URL` com essa URL
      e clique em **Redeploy**.
-   - Pelo próprio navegador, acesse `https://SEU-DOMINIO.vercel.app/api/seed?key=SEU_SEED_SECRET`
-     uma vez para criar a clínica de demonstração, o admin e o dentista.
-7. Testar:
+6. Testar:
    - Login: `https://SEU-DOMINIO.vercel.app/login` com `admin@clinicaexemplo.com.br` / `admin123`
    - Agendamento público: `https://SEU-DOMINIO.vercel.app/agendar/clinica-exemplo`
 
