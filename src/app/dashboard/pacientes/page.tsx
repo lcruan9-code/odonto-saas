@@ -1,6 +1,8 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { NewPatientForm } from "./new-patient-form";
+import { PatientRow } from "./patient-row";
 
 export default async function PacientesPage() {
   const session = await getServerSession(authOptions);
@@ -13,26 +15,35 @@ export default async function PacientesPage() {
   return (
     <div>
       <h1 className="mb-4 text-2xl font-semibold">Pacientes</h1>
+
+      <div className="mb-4">
+        <NewPatientForm />
+      </div>
+
       <div className="overflow-hidden rounded-md border bg-white">
         <table className="w-full text-sm">
           <thead className="bg-slate-100 text-left">
             <tr>
               <th className="p-3">Nome</th>
               <th className="p-3">Contatos</th>
+              <th className="p-3">Ações</th>
             </tr>
           </thead>
           <tbody>
             {patients.map((p) => (
-              <tr key={p.id} className="border-t">
-                <td className="p-3">{p.name}</td>
-                <td className="p-3">
-                  {p.contacts.map((c) => c.value).join(", ") || "—"}
-                </td>
-              </tr>
+              <PatientRow
+                key={p.id}
+                patient={{
+                  id: p.id,
+                  name: p.name,
+                  notes: p.notes,
+                  contacts: p.contacts.map((c) => ({ value: c.value })),
+                }}
+              />
             ))}
             {patients.length === 0 && (
               <tr>
-                <td colSpan={2} className="p-3 text-center text-slate-500">
+                <td colSpan={3} className="p-3 text-center text-slate-500">
                   Nenhum paciente cadastrado.
                 </td>
               </tr>

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Clínica não encontrada" }, { status: 404 });
   }
 
-  const dentist = await prisma.dentist.findFirst({ where: { id: dentistId, clinicId } });
+  const dentist = await prisma.dentist.findFirst({ where: { id: dentistId, clinicId, active: true } });
   if (!dentist) {
     return NextResponse.json({ error: "Dentista inválido" }, { status: 400 });
   }

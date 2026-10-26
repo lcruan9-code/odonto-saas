@@ -23,9 +23,20 @@ pacientes, horários de funcionamento por dia da semana e contatos.
 
 - Login em `/login` (NextAuth Credentials + bcrypt), sessão JWT com `clinicId` e `role`.
 - `middleware.ts` protege todas as rotas `/dashboard/*`.
-- Rotas internas (`/api/patients`, `/api/appointments`, `/api/working-hours`) derivam o
-  `clinicId` da sessão — nunca confiam no valor enviado pelo cliente.
-- `WorkingHour` só pode ser alterado por usuários com `role: ADMIN`.
+- Rotas internas derivam o `clinicId` da sessão — nunca confiam no valor enviado pelo cliente.
+- Cadastro de dentistas, horários e dados da clínica só podem ser alterados por `role: ADMIN`.
+
+## Funcionalidades do dashboard (CRM)
+
+- **Agenda** (`/dashboard/agenda`): lista agendamentos, cria novo agendamento (paciente +
+  dentista + horário), reagenda (troca dentista/horário com checagem de conflito) e ajusta
+  status (agendado, confirmado, concluído, faltou, cancelado) inline.
+- **Pacientes** (`/dashboard/pacientes`): cadastro e edição (nome, contato, observações).
+- **Dentistas** (`/dashboard/dentistas`, admin): cadastro (cria usuário de login + perfil),
+  ativar/desativar — dentista inativo some do agendamento interno e da página pública.
+- **Horários** (`/dashboard/horarios`, admin): edição por dia da semana (início, fim, ativo).
+- **Administração** (`/dashboard/administracao`, admin): indicadores (usuários, dentistas,
+  pacientes, agendamentos) e dados da clínica (nome, contato, duração padrão da consulta).
 
 ## Agendamento público
 

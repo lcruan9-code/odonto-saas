@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   }
 
   const dentist = await prisma.dentist.findFirst({
-    where: { id: data.dentistId, clinicId },
+    where: { id: data.dentistId, clinicId, active: true },
   });
   if (!dentist) {
     return NextResponse.json({ error: "Dentista inválido" }, { status: 400 });

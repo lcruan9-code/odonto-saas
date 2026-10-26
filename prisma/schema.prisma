@@ -64,6 +64,7 @@ model User {
   email        String   @unique
   passwordHash String
   role         Role     @default(RECEPTIONIST)
+  active       Boolean  @default(true)
   createdAt    DateTime @default(now())
 
   dentist      Dentist?
@@ -77,6 +78,7 @@ model Dentist {
   user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   specialty  String?
   cro        String?
+  active     Boolean       @default(true)
 
   appointments Appointment[]
 

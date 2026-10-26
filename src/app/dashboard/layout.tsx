@@ -6,7 +6,9 @@ import { SignOutButton } from "./sign-out-button";
 const NAV = [
   { href: "/dashboard/agenda", label: "Agenda" },
   { href: "/dashboard/pacientes", label: "Pacientes" },
+  { href: "/dashboard/dentistas", label: "Dentistas" },
   { href: "/dashboard/horarios", label: "Horários" },
+  { href: "/dashboard/administracao", label: "Administração" },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

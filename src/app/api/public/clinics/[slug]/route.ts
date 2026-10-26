@@ -6,7 +6,7 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
     where: { slug: params.slug },
     include: {
       workingHours: { where: { isActive: true } },
-      dentists: { include: { user: true } },
+      dentists: { where: { active: true }, include: { user: true } },
     },
   });
 
