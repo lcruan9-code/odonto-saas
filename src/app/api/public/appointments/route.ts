@@ -44,22 +44,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Horário fora do expediente do profissional" }, { status: 409 });
   }
 
-  let patient = await prisma.patient.findFirst({
-    where: { clinicId, contacts: { some: { value: contactValue } } },
-  });
-
-  if (!patient) {
-    patient = await prisma.patient.create({
-      data: {
-        clinicId,
-        name: patientName,
-        contacts: { create: { type: contactType, value: contactValue, isPrimary: true } },
-      },
-    });
-  }
-
-  const patientId = patient.id;
-
   let appointment;
   try {
     appointment = await prisma.$transaction(
@@ -82,8 +66,24 @@ export async function POST(req: NextRequest) {
           throw new Error("CONFLICT");
         }
 
+        // Só cadastra o paciente depois de garantir o horário, para não criar
+        // pacientes órfãos quando o agendamento é recusado.
+        const patient =
+          (await tx.patient.findFirst({
+            where: { clinicId, contacts: { some: { value: contactValue } } },
+            select: { id: true },
+          })) ??
+          (await tx.patient.create({
+            data: {
+              clinicId,
+              name: patientName,
+              contacts: { create: { type: contactType, value: contactValue, isPrimary: true } },
+            },
+            select: { id: true },
+          }));
+
         return tx.appointment.create({
-          data: { clinicId, dentistId, patientId, startAt, endAt },
+          data: { clinicId, dentistId, patientId: patient.id, startAt, endAt },
           include: { dentist: { include: { user: true } }, clinic: true },
         });
       },
