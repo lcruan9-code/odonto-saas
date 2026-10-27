@@ -9,9 +9,9 @@ import { NAV_ITEMS, activeHref } from "./nav-items";
 
 export type ClinicSummary = { name: string; slug: string; logoUrl: string | null };
 
-export function SidebarBrand({ clinic }: { clinic: ClinicSummary }) {
+export function SidebarBrand({ clinic, inSheet }: { clinic: ClinicSummary; inSheet?: boolean }) {
   return (
-    <Link href="/dashboard" className="flex min-w-0 items-center gap-3 px-2">
+    <Link href="/dashboard" className={cn("flex min-w-0 items-center gap-3 px-2", inSheet && "pr-10")}>
       {clinic.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={clinic.logoUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
@@ -63,13 +63,16 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 export function SidebarContent({
   clinic,
   onNavigate,
+  inSheet,
 }: {
   clinic: ClinicSummary;
   onNavigate?: () => void;
+  /** No menu do celular, reserva espaço para o botão de fechar. */
+  inSheet?: boolean;
 }) {
   return (
     <div className="flex h-full flex-col gap-8 bg-navy px-3 py-5">
-      <SidebarBrand clinic={clinic} />
+      <SidebarBrand clinic={clinic} inSheet={inSheet} />
       <SidebarNav onNavigate={onNavigate} />
       <p className="mt-auto px-3 text-xs text-white/40">{whiteLabel.productName}</p>
     </div>

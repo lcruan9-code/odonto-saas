@@ -48,7 +48,7 @@ export function Topbar({
         </SheetTrigger>
         <SheetContent side="left" className="w-72 border-none p-0 [&>button]:text-white">
           <SheetTitle className="sr-only">Menu do painel</SheetTitle>
-          <SidebarContent clinic={clinic} onNavigate={() => setMenuOpen(false)} />
+          <SidebarContent clinic={clinic} onNavigate={() => setMenuOpen(false)} inSheet />
         </SheetContent>
       </Sheet>
 
