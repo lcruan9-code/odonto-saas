@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Montserrat } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { whiteLabel } from "@/config/white-label";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 const display = Montserrat({
@@ -12,8 +13,8 @@ const display = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Odonto SaaS",
-  description: "Gestão de clínicas odontológicas: agendamentos, pacientes e contatos",
+  title: whiteLabel.productName,
+  description: whiteLabel.productTagline,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

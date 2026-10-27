@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { whiteLabel } from "@/config/white-label";
 
 type Branding = {
   description: string | null;
@@ -20,9 +21,11 @@ export function BrandingForm({ branding, canEdit }: { branding: Branding; canEdi
   const [logoUrl, setLogoUrl] = useState(branding.logoUrl ?? "");
   const [coverImageUrl, setCoverImageUrl] = useState(branding.coverImageUrl ?? "");
   const [aboutImageUrl, setAboutImageUrl] = useState(branding.aboutImageUrl ?? "");
-  const [primaryColor, setPrimaryColor] = useState(branding.primaryColor ?? "#0A2B4E");
-  const [secondaryColor, setSecondaryColor] = useState(branding.secondaryColor ?? "#007A8A");
-  const [accentColor, setAccentColor] = useState(branding.accentColor ?? "#3BBEB8");
+  const [primaryColor, setPrimaryColor] = useState(branding.primaryColor ?? whiteLabel.colors.primary);
+  const [secondaryColor, setSecondaryColor] = useState(
+    branding.secondaryColor ?? whiteLabel.colors.secondary
+  );
+  const [accentColor, setAccentColor] = useState(branding.accentColor ?? whiteLabel.colors.accent);
   const [ctaText, setCtaText] = useState(branding.ctaText ?? "Agende sua Consulta");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);

@@ -130,6 +130,49 @@ export const contactMessageSchema = z.object({
   website: z.string().max(0).optional().or(z.literal("")),
 });
 
+const DAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"] as const;
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido (HH:MM)");
+
+export const dentistScheduleDaySchema = z
+  .object({
+    dayOfWeek: z.enum(DAYS),
+    startTime: hhmm,
+    endTime: hhmm,
+    breakStart: hhmm.nullable().optional(),
+    breakEnd: hhmm.nullable().optional(),
+    isActive: z.boolean().default(true),
+  })
+  .refine((d) => d.startTime < d.endTime, "Fim deve ser depois do início")
+  .refine(
+    (d) => !d.breakStart === !d.breakEnd,
+    "Informe início e fim do intervalo, ou deixe os dois vazios"
+  )
+  .refine(
+    (d) =>
+      !d.breakStart ||
+      !d.breakEnd ||
+      (d.startTime < d.breakStart && d.breakStart < d.breakEnd && d.breakEnd < d.endTime),
+    "O intervalo precisa estar dentro do expediente"
+  );
+
+// Grade completa da semana (substitui a anterior do profissional).
+export const dentistScheduleSchema = z
+  .array(dentistScheduleDaySchema)
+  .max(7)
+  .refine(
+    (days) => new Set(days.map((d) => d.dayOfWeek)).size === days.length,
+    "Dia da semana repetido"
+  );
+
+export const timeBlockSchema = z
+  .object({
+    dentistId: z.string().min(1).nullable(),
+    startAt: z.coerce.date(),
+    endAt: z.coerce.date(),
+    reason: z.string().trim().max(200).optional(),
+  })
+  .refine((b) => b.endAt > b.startAt, "Fim deve ser depois do início");
+
 export const workingHourSchema = z.object({
   dayOfWeek: z.enum([
     "SUNDAY",

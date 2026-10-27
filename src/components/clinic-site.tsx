@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { whiteLabel } from "@/config/white-label";
 import { LockIcon, MailIcon, MapPinIcon, PhoneIcon, ToothIcon } from "@/components/dental-icons";
 
 type ClinicBrand = {
@@ -179,7 +180,7 @@ export function SiteFooter({
         </div>
       </div>
       <div className="border-t border-white/10 px-4 py-4 text-center text-xs text-white/60">
-        © {new Date().getFullYear()} {clinic.name}. Agendamento online por Odonto SaaS.
+        © {new Date().getFullYear()} {clinic.name}. Agendamento online por {whiteLabel.productName}.
       </div>
     </footer>
   );

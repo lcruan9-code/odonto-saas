@@ -68,6 +68,8 @@ model Clinic {
   workingHours  WorkingHour[]
   services      Service[]
   contactMessages ContactMessage[]
+  dentistSchedules DentistSchedule[]
+  timeBlocks    TimeBlock[]
 }
 
 model User {
@@ -97,10 +99,50 @@ model Dentist {
   publicVisible Boolean    @default(true)
   publicBio     String?
   photoUrl      String?
+  // Cor do profissional na agenda visual do painel
+  color         String     @default("#007A8A")
 
   appointments Appointment[]
+  schedules    DentistSchedule[]
+  timeBlocks   TimeBlock[]
 
   @@index([clinicId])
+}
+
+// Grade de atendimento do profissional por dia da semana. Sem nenhuma linha
+// cadastrada, o dentista segue o horário de funcionamento da clínica.
+model DentistSchedule {
+  id         String    @id @default(cuid())
+  clinicId   String
+  clinic     Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  dentistId  String
+  dentist    Dentist   @relation(fields: [dentistId], references: [id], onDelete: Cascade)
+  dayOfWeek  DayOfWeek
+  startTime  String    // "08:00"
+  endTime    String    // "18:00"
+  breakStart String?   // intervalo opcional, ex: "12:00"
+  breakEnd   String?   // ex: "13:00"
+  isActive   Boolean   @default(true)
+
+  @@unique([dentistId, dayOfWeek])
+  @@index([clinicId])
+}
+
+// Período indisponível na agenda (folga, curso, reunião). Sem dentista,
+// bloqueia a clínica inteira.
+model TimeBlock {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  dentistId String?
+  dentist   Dentist? @relation(fields: [dentistId], references: [id], onDelete: Cascade)
+  startAt   DateTime
+  endAt     DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([clinicId, startAt])
+  @@index([dentistId, startAt])
 }
 
 model Service {

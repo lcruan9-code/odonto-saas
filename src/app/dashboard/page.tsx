@@ -10,6 +10,9 @@ import {
   UsersIcon,
 } from "@/components/dental-icons";
 import { StatusBadge, STATUS_LABELS } from "./status-badge";
+import { whiteLabel } from "@/config/white-label";
+
+const colors = whiteLabel.colors;
 
 export default async function DashboardHomePage() {
   const session = await getServerSession(authOptions);
@@ -50,10 +53,10 @@ export default async function DashboardHomePage() {
   ).length;
 
   const kpis = [
-    { label: "Consultas hoje", value: todayAppointments.length, hint: `${remainingToday} a seguir`, icon: CalendarIcon, color: "#0A2B4E" },
-    { label: "Pacientes", value: patientCount, hint: "cadastrados", icon: UsersIcon, color: "#007A8A" },
-    { label: "Dentistas ativos", value: activeDentistCount, hint: "na agenda", icon: StethoscopeIcon, color: "#3BBEB8" },
-    { label: "Mensagens do site", value: messageCount, hint: "recebidas", icon: MailIcon, color: "#0A2B4E" },
+    { label: "Consultas hoje", value: todayAppointments.length, hint: `${remainingToday} a seguir`, icon: CalendarIcon, color: colors.primary },
+    { label: "Pacientes", value: patientCount, hint: "cadastrados", icon: UsersIcon, color: colors.secondary },
+    { label: "Dentistas ativos", value: activeDentistCount, hint: "na agenda", icon: StethoscopeIcon, color: colors.accent },
+    { label: "Mensagens do site", value: messageCount, hint: "recebidas", icon: MailIcon, color: colors.primary },
   ];
 
   return (

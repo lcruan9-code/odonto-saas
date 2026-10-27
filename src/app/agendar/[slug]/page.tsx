@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { brandColors } from "@/config/white-label";
 import { SiteFooter, SiteHeader } from "@/components/clinic-site";
 import { BookingForm } from "./booking-form";
 
@@ -30,9 +31,7 @@ export default async function BookingPage({ params }: { params: { slug: string }
 
   if (!clinic) notFound();
 
-  const primary = clinic.primaryColor || "#0A2B4E";
-  const secondary = clinic.secondaryColor || "#007A8A";
-  const accent = clinic.accentColor || "#3BBEB8";
+  const { primary, secondary, accent } = brandColors(clinic);
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">

@@ -1,13 +1,16 @@
 import type { Config } from "tailwindcss";
+import { whiteLabel } from "./src/config/white-label";
 
+// Cores vêm de src/config/white-label.ts. Nomes mantidos por compatibilidade:
+// navy = cor principal, primary = secundária (ações), mint = destaque.
 const config: Config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
       colors: {
-        primary: "#007A8A",
-        navy: "#0A2B4E",
-        mint: "#3BBEB8",
+        navy: whiteLabel.colors.primary,
+        primary: whiteLabel.colors.secondary,
+        mint: whiteLabel.colors.accent,
       },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],

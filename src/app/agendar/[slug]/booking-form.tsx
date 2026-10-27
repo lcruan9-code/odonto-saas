@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatDateTime, formatTime } from "@/lib/dates";
 import { CheckIcon } from "@/components/dental-icons";
+import { whiteLabel } from "@/config/white-label";
 
 type Dentist = { id: string; name: string; specialty?: string | null };
 
@@ -27,7 +28,7 @@ function StepTitle({ n, title, color }: { n: number; title: string; color: strin
 export function BookingForm({
   clinicId,
   dentists,
-  primary = "#0A2B4E",
+  primary = whiteLabel.colors.primary,
   photos = {},
   homeHref,
 }: {

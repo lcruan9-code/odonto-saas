@@ -4,7 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LockIcon, ToothIcon } from "@/components/dental-icons";
+import { LockIcon } from "@/components/dental-icons";
+import { ProductBrand } from "@/components/product-brand";
+import { whiteLabel } from "@/config/white-label";
+
+const demo = whiteLabel.demo;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -51,11 +55,8 @@ export default function LoginPage() {
 
       <div className="flex flex-col justify-center px-6 py-12 sm:px-12">
         <div className="mx-auto w-full max-w-sm">
-          <Link href="/" className="mb-10 flex items-center gap-2.5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-navy text-white">
-              <ToothIcon className="h-6 w-6" />
-            </span>
-            <span className="font-display text-lg font-bold">Odonto SaaS</span>
+          <Link href="/" className="mb-10 inline-flex">
+            <ProductBrand />
           </Link>
 
           <p className="mb-1 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
@@ -97,19 +98,23 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-xs text-slate-600">
-            <p className="mb-1 font-semibold text-slate-800">Acesso de demonstração</p>
-            <p>Administração: admin@sorrisopleno.com.br / admin123</p>
-            <p>Recepção: recepcao@sorrisopleno.com.br / recepcao123</p>
-            <p>Dentista: ana.souza@sorrisopleno.com.br / dentista123</p>
-          </div>
+          {demo.clinicSlug && demo.showCredentialsOnLogin && (
+            <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-xs text-slate-600">
+              <p className="mb-1 font-semibold text-slate-800">Acesso de demonstração</p>
+              <p>Administração: admin@sorrisopleno.com.br / admin123</p>
+              <p>Recepção: recepcao@sorrisopleno.com.br / recepcao123</p>
+              <p>Dentista: ana.souza@sorrisopleno.com.br / dentista123</p>
+            </div>
+          )}
 
-          <p className="mt-6 text-center text-sm text-slate-500">
-            É paciente?{" "}
-            <Link href="/clinica/sorriso-pleno" className="font-medium text-primary underline">
-              Agende pelo site da clínica
-            </Link>
-          </p>
+          {demo.clinicSlug && (
+            <p className="mt-6 text-center text-sm text-slate-500">
+              É paciente?{" "}
+              <Link href={`/clinica/${demo.clinicSlug}`} className="font-medium text-primary underline">
+                Agende pelo site da clínica
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     </main>

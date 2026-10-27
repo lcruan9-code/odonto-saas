@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { brandColors, whiteLabel } from "@/config/white-label";
 import {
   CalendarIcon,
   CheckIcon,
@@ -110,10 +111,8 @@ export default async function ClinicHomePage({ params }: { params: { slug: strin
     isPreview = true;
   }
 
-  const primary = clinic.primaryColor || "#0A2B4E";
-  const secondary = clinic.secondaryColor || "#007A8A";
-  const accent = clinic.accentColor || "#3BBEB8";
-  const ctaText = clinic.ctaText || "Agende sua Consulta";
+  const { primary, secondary, accent } = brandColors(clinic);
+  const ctaText = clinic.ctaText || whiteLabel.defaults.ctaText;
   const palette = [primary, secondary, accent];
   const bookingHref = `/agendar/${clinic.slug}`;
 

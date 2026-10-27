@@ -1,5 +1,6 @@
 import { AppointmentStatus, DayOfWeek, PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { whiteLabel } from "../config/white-label";
 
 // Empresa 100% fictícia usada como demonstração. Nomes, CROs, telefones e
 // e-mails são inventados; fotos são do Unsplash (licença livre) em
@@ -18,11 +19,11 @@ const CLINIC = {
     "Odontologia completa para toda a família: prevenção, ortodontia, implantes e estética, com agendamento online e atendimento humanizado.",
   coverImageUrl: "/images/demo/hero-paciente.jpg",
   aboutImageUrl: "/images/demo/consultorio.jpg",
-  ctaText: "Agende sua Consulta",
-  primaryColor: "#0A2B4E",
-  secondaryColor: "#007A8A",
-  accentColor: "#3BBEB8",
-  slotDurationMinutes: 30,
+  ctaText: whiteLabel.defaults.ctaText,
+  primaryColor: whiteLabel.colors.primary,
+  secondaryColor: whiteLabel.colors.secondary,
+  accentColor: whiteLabel.colors.accent,
+  slotDurationMinutes: whiteLabel.defaults.slotDurationMinutes,
   published: true,
 };
 
@@ -197,13 +198,14 @@ export async function runDemoSeed(prisma: PrismaClient) {
   for (const s of STAFF) await upsertUser(s);
 
   const dentistIds: string[] = [];
-  for (const d of DENTISTS) {
+  for (const [index, d] of DENTISTS.entries()) {
     const user = await upsertUser({ ...d, role: Role.DENTIST, password: "dentista123" });
     const profile = {
       specialty: d.specialty,
       cro: d.cro,
       photoUrl: d.photoUrl,
       publicBio: d.publicBio,
+      color: whiteLabel.dentistColors[index % whiteLabel.dentistColors.length],
       active: true,
       publicVisible: true,
     };
@@ -213,6 +215,23 @@ export async function runDemoSeed(prisma: PrismaClient) {
       create: { ...profile, userId: user.id, clinicId: clinic.id },
     });
     dentistIds.push(dentist.id);
+
+    // Grade do profissional: só cria se ainda não tiver nenhuma, para não
+    // sobrescrever ajustes feitos pelo painel.
+    const hasSchedule = await prisma.dentistSchedule.count({ where: { dentistId: dentist.id } });
+    if (hasSchedule === 0) {
+      await prisma.dentistSchedule.createMany({
+        data: HOURS.filter((h) => h.active).map((h) => ({
+          clinicId: clinic.id,
+          dentistId: dentist.id,
+          dayOfWeek: h.day,
+          startTime: h.start,
+          endTime: h.end,
+          breakStart: h.day === DayOfWeek.SATURDAY ? null : "12:00",
+          breakEnd: h.day === DayOfWeek.SATURDAY ? null : "13:00",
+        })),
+      });
+    }
   }
 
   for (const [i, [name, description]] of SERVICES.entries()) {
@@ -254,10 +273,12 @@ export async function runDemoSeed(prisma: PrismaClient) {
     patientIds.push(patient.id);
   }
 
-  // Agenda de demonstração com horários fixos relativos a "hoje". Os horários
-  // já ocupados (qualquer status) são pulados, então rodar de novo no mesmo dia
-  // não duplica nada; o teto evita crescer indefinidamente.
   const now = new Date();
+  const blocks = await seedTimeBlocks(prisma, clinic.id, dentistIds[2], now);
+
+  // Agenda de demonstração com horários fixos relativos a "hoje". Os horários
+  // já ocupados (qualquer status) ou bloqueados são pulados, então rodar de
+  // novo no mesmo dia não duplica nada; o teto evita crescer indefinidamente.
   const windowStart = brazilTime(-6, "00:00", now);
   const windowEnd = brazilTime(11, "00:00", now);
   const [appointmentCount, taken] = await Promise.all([
@@ -296,9 +317,16 @@ export async function runDemoSeed(prisma: PrismaClient) {
 
           const startAt = brazilTime(dayOffset, slot, now);
           const endAt = new Date(startAt.getTime() + clinic.slotDurationMinutes * 60_000);
-          const busy = [...taken, ...toCreate].some(
-            (a) => a.dentistId === dentistId && a.startAt < endAt && a.endAt > startAt
-          );
+          const busy =
+            [...taken, ...toCreate].some(
+              (a) => a.dentistId === dentistId && a.startAt < endAt && a.endAt > startAt
+            ) ||
+            blocks.some(
+              (b) =>
+                (b.dentistId === null || b.dentistId === dentistId) &&
+                b.startAt < endAt &&
+                b.endAt > startAt
+            );
           if (busy) continue;
 
           let status: AppointmentStatus;
@@ -357,4 +385,61 @@ export async function runDemoSeed(prisma: PrismaClient) {
     patients: patientIds.length,
     createdAppointments,
   };
+}
+
+// Bloqueios de exemplo: uma reunião da clínica inteira e um curso de um
+// dentista, em dias sem consultas marcadas. Só cria se ainda não houver
+// nenhum bloqueio na clínica.
+async function seedTimeBlocks(
+  prisma: PrismaClient,
+  clinicId: string,
+  courseDentistId: string | undefined,
+  now: Date
+) {
+  const existing = await prisma.timeBlock.findMany({
+    where: { clinicId },
+    select: { dentistId: true, startAt: true, endAt: true },
+  });
+  if (existing.length > 0) return existing;
+
+  const created: { dentistId: string | null; startAt: Date; endAt: Date; reason: string }[] = [];
+
+  // Reunião de equipe (clínica inteira) no fim do expediente de seg–qui.
+  for (let offset = 2; offset <= 9; offset++) {
+    const weekday = brazilWeekday(brazilTime(offset, "12:00", now));
+    if (weekday < 1 || weekday > 4) continue;
+    created.push({
+      dentistId: null,
+      startAt: brazilTime(offset, "17:30", now),
+      endAt: brazilTime(offset, "19:00", now),
+      reason: "Reunião de equipe",
+    });
+    break;
+  }
+
+  // Curso de um dentista, num dia útil em que ele ainda não tem consultas.
+  if (courseDentistId) {
+    for (let offset = 7; offset <= 14; offset++) {
+      const weekday = brazilWeekday(brazilTime(offset, "12:00", now));
+      if (weekday < 1 || weekday > 5) continue;
+      const startAt = brazilTime(offset, "08:00", now);
+      const endAt = brazilTime(offset, "12:00", now);
+      const clash = await prisma.appointment.count({
+        where: {
+          dentistId: courseDentistId,
+          status: { notIn: ["CANCELLED"] },
+          startAt: { lt: endAt },
+          endAt: { gt: startAt },
+        },
+      });
+      if (clash > 0) continue;
+      created.push({ dentistId: courseDentistId, startAt, endAt, reason: "Curso de atualização em implantes" });
+      break;
+    }
+  }
+
+  if (created.length > 0) {
+    await prisma.timeBlock.createMany({ data: created.map((b) => ({ ...b, clinicId })) });
+  }
+  return created;
 }
