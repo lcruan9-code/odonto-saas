@@ -199,6 +199,8 @@ export default function AgendaCalendar({
   }
 
   function renderEvent(arg: EventContentArg) {
+    // Prévia da seleção (selectMirror) não tem dados próprios: conteúdo padrão.
+    if (!arg.event.extendedProps.kind) return true;
     const props = arg.event.extendedProps as Selected;
     if (props.kind === "block") {
       const scope = props.data.dentistId

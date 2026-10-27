@@ -45,14 +45,17 @@
   box-shadow: none !important;
 }
 
-.agenda-calendar .fc .fc-button-active {
+.agenda-calendar .fc .fc-button-primary:not(:disabled).fc-button-active {
   color: #fff;
 }
 
 .agenda-calendar .fc .fc-toolbar-title {
   font-size: 1.05rem;
   font-weight: 600;
-  text-transform: capitalize;
+}
+
+.agenda-calendar .fc .fc-timegrid-slot {
+  height: 2.25rem;
 }
 
 .agenda-calendar .fc .fc-toolbar {
