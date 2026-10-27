@@ -180,11 +180,16 @@ export async function runDemoSeed(prisma: PrismaClient) {
         await prisma.user.update({ where: { id: old.id }, data: { email: u.email } });
       }
     }
+    const existing = await prisma.user.findUnique({ where: { email: u.email } });
+    if (existing) {
+      return prisma.user.update({
+        where: { id: existing.id },
+        data: { name: u.name, role: u.role, clinicId: clinic.id, active: true },
+      });
+    }
     const passwordHash = await bcrypt.hash(u.password, 10);
-    return prisma.user.upsert({
-      where: { email: u.email },
-      update: { name: u.name, role: u.role, clinicId: clinic.id, active: true },
-      create: { email: u.email, name: u.name, role: u.role, passwordHash, clinicId: clinic.id },
+    return prisma.user.create({
+      data: { email: u.email, name: u.name, role: u.role, passwordHash, clinicId: clinic.id },
     });
   }
 
@@ -223,9 +228,14 @@ export async function runDemoSeed(prisma: PrismaClient) {
     }
   }
 
+  const existingPatients = await prisma.patient.findMany({
+    where: { clinicId: clinic.id, name: { in: PATIENTS.map(([n]) => n) } },
+    select: { id: true, name: true },
+  });
+  const patientByName = new Map(existingPatients.map((p) => [p.name, p.id]));
   const patientIds: string[] = [];
   for (const [name, phone, email] of PATIENTS) {
-    let patient = await prisma.patient.findFirst({ where: { clinicId: clinic.id, name } });
+    let patient = patientByName.has(name) ? { id: patientByName.get(name)! } : null;
     if (!patient) {
       patient = await prisma.patient.create({
         data: {
@@ -243,19 +253,36 @@ export async function runDemoSeed(prisma: PrismaClient) {
     patientIds.push(patient.id);
   }
 
-  // Agenda de demonstração: só gera se a clínica ainda tiver poucos agendamentos,
-  // para não empilhar consultas a cada execução.
-  const appointmentCount = await prisma.appointment.count({ where: { clinicId: clinic.id } });
-  let createdAppointments = 0;
+  // Agenda de demonstração com horários fixos relativos a "hoje". Os horários
+  // já ocupados (qualquer status) são pulados, então rodar de novo no mesmo dia
+  // não duplica nada; o teto evita crescer indefinidamente.
+  const now = new Date();
+  const windowStart = brazilTime(-6, "00:00", now);
+  const windowEnd = brazilTime(11, "00:00", now);
+  const [appointmentCount, taken] = await Promise.all([
+    prisma.appointment.count({ where: { clinicId: clinic.id } }),
+    prisma.appointment.findMany({
+      where: { dentistId: { in: dentistIds }, startAt: { gte: windowStart, lt: windowEnd } },
+      select: { dentistId: true, startAt: true, endAt: true },
+    }),
+  ]);
 
-  if (appointmentCount < 10) {
-    const now = new Date();
+  const toCreate: {
+    clinicId: string;
+    dentistId: string;
+    patientId: string;
+    startAt: Date;
+    endAt: Date;
+    status: AppointmentStatus;
+    notes: string;
+  }[] = [];
+
+  if (appointmentCount < 150) {
     const slots = ["09:00", "10:30", "14:00", "16:30"];
     let patientCursor = 0;
 
     for (let dayOffset = -6; dayOffset <= 10; dayOffset++) {
-      const probe = brazilTime(dayOffset, "12:00", now);
-      const weekday = brazilWeekday(probe);
+      const weekday = brazilWeekday(brazilTime(dayOffset, "12:00", now));
       if (weekday === 0) continue;
       const daySlots = weekday === 6 ? ["09:00", "10:30"] : slots;
 
@@ -268,16 +295,10 @@ export async function runDemoSeed(prisma: PrismaClient) {
 
           const startAt = brazilTime(dayOffset, slot, now);
           const endAt = new Date(startAt.getTime() + clinic.slotDurationMinutes * 60_000);
-
-          const overlap = await prisma.appointment.findFirst({
-            where: {
-              dentistId,
-              status: { notIn: ["CANCELLED"] },
-              startAt: { lt: endAt },
-              endAt: { gt: startAt },
-            },
-          });
-          if (overlap) continue;
+          const busy = [...taken, ...toCreate].some(
+            (a) => a.dentistId === dentistId && a.startAt < endAt && a.endAt > startAt
+          );
+          if (busy) continue;
 
           let status: AppointmentStatus;
           if (startAt < now) {
@@ -288,23 +309,25 @@ export async function runDemoSeed(prisma: PrismaClient) {
           }
 
           const notes = NOTES_BY_DENTIST[dentistIndex % NOTES_BY_DENTIST.length];
-          await prisma.appointment.create({
-            data: {
-              clinicId: clinic.id,
-              dentistId,
-              patientId: patientIds[patientCursor % patientIds.length],
-              startAt,
-              endAt,
-              status,
-              notes: notes[patientCursor % notes.length],
-            },
+          toCreate.push({
+            clinicId: clinic.id,
+            dentistId,
+            patientId: patientIds[patientCursor % patientIds.length],
+            startAt,
+            endAt,
+            status,
+            notes: notes[patientCursor % notes.length],
           });
           patientCursor++;
-          createdAppointments++;
         }
       }
     }
   }
+
+  if (toCreate.length > 0) {
+    await prisma.appointment.createMany({ data: toCreate });
+  }
+  const createdAppointments = toCreate.length;
 
   const messageCount = await prisma.contactMessage.count({ where: { clinicId: clinic.id } });
   if (messageCount === 0) {

@@ -5,7 +5,7 @@ import { runDemoSeed } from "@/lib/demo-seed";
 // Sem isto o Next pré-renderiza o GET no build e passa a servir a resposta
 // estática ("rota desativada") para sempre.
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 // Popula a empresa fictícia de demonstração a partir do navegador.
 // Só funciona com SEED_SECRET configurada e a chave correta na URL.
