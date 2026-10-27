@@ -28,8 +28,8 @@ export default async function DentistasPage() {
         </p>
       )}
 
-      <div className="overflow-hidden rounded-md border bg-white">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full min-w-[880px] text-sm">
           <thead className="bg-slate-100 text-left">
             <tr>
               <th className="p-3">Nome</th>
@@ -51,6 +51,7 @@ export default async function DentistasPage() {
                     active: d.active,
                     publicVisible: d.publicVisible,
                     publicBio: d.publicBio,
+                    photoUrl: d.photoUrl,
                     specialty: d.specialty,
                     cro: d.cro,
                     user: { name: d.user.name, email: d.user.email },

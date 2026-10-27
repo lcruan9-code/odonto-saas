@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { fromBrazilLocalInput } from "@/lib/dates";
 
 type Option = { id: string; name: string };
 
@@ -27,7 +28,7 @@ export function NewAppointmentForm({
     setSaving(true);
     setError(null);
 
-    const start = new Date(startAt);
+    const start = fromBrazilLocalInput(startAt);
     const end = new Date(start.getTime() + slotDurationMinutes * 60_000);
 
     const res = await fetch("/api/appointments", {

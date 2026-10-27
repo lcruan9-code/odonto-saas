@@ -31,8 +31,8 @@ export default async function HorariosPage() {
           Apenas administradores podem alterar os horários.
         </p>
       )}
-      <div className="overflow-hidden rounded-md border bg-white">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full min-w-[560px] text-sm">
           <thead className="bg-slate-100 text-left">
             <tr>
               <th className="p-3">Dia da semana</th>

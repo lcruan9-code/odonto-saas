@@ -95,6 +95,7 @@ model Dentist {
   // Controla exibição na home pública, independente de `active` (que controla agendamento)
   publicVisible Boolean    @default(true)
   publicBio     String?
+  photoUrl      String?
 
   appointments Appointment[]
 

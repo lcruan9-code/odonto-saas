@@ -5,7 +5,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#0ea5e9",
+        primary: "#007A8A",
+        navy: "#0A2B4E",
+        mint: "#3BBEB8",
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-sans)", "ui-sans-serif", "sans-serif"],
       },
     },
   },

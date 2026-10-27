@@ -1,3 +1,5 @@
+import { formatDateTime } from "@/lib/dates";
+
 interface AppointmentNotificationPayload {
   patientName: string;
   clinicName: string;
@@ -9,10 +11,7 @@ interface AppointmentNotificationPayload {
 // provedor de e-mail (ex: Resend, SES) e de WhatsApp (ex: Meta Cloud API, Twilio)
 // mantendo a mesma assinatura de função.
 export async function notifyAppointmentCreated(payload: AppointmentNotificationPayload) {
-  const when = payload.startAt.toLocaleString("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
+  const when = formatDateTime(payload.startAt);
 
   const message = `Olá ${payload.patientName}, seu agendamento na ${payload.clinicName} com ${payload.dentistName} foi confirmado para ${when}.`;
 

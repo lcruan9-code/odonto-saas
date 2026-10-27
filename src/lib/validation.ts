@@ -6,8 +6,8 @@ const hexColor = z
   .optional()
   .or(z.literal(""));
 
-// Aceita apenas http(s) e recusa URLs absurdamente longas; evita depender de
-// um serviço de upload que o projeto ainda não tem configurado.
+// Aceita http(s) ou caminho local do próprio site ("/images/..."), recusando
+// "//host" (protocol-relative) e esquemas como javascript:/data:.
 const safeImageUrl = z
   .string()
   .trim()
@@ -15,8 +15,8 @@ const safeImageUrl = z
   .optional()
   .or(z.literal(""))
   .refine(
-    (value) => !value || /^https?:\/\//i.test(value),
-    "A URL da imagem deve começar com http:// ou https://"
+    (value) => !value || /^https?:\/\//i.test(value) || /^\/(?!\/)[\w\-./]+$/.test(value),
+    "Use uma URL http(s):// ou um caminho local como /images/foto.jpg"
   );
 
 export const patientSchema = z.object({
@@ -76,6 +76,7 @@ export const dentistUpdateSchema = z.object({
   active: z.boolean().optional(),
   publicVisible: z.boolean().optional(),
   publicBio: z.string().max(1000).optional(),
+  photoUrl: safeImageUrl,
 });
 
 export const clinicUpdateSchema = z.object({

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { formatDateTime, fromBrazilLocalInput, toBrazilLocalInput } from "@/lib/dates";
 
 type Dentist = { id: string; name: string };
 
@@ -21,14 +22,6 @@ const STATUS_LABELS: Record<string, string> = {
   NO_SHOW: "Faltou",
 };
 
-function toLocalInputValue(iso: string) {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
-}
-
 export function AppointmentRow({
   appointment,
   dentists,
@@ -41,7 +34,7 @@ export function AppointmentRow({
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [dentistId, setDentistId] = useState(appointment.dentist.id);
-  const [startAt, setStartAt] = useState(toLocalInputValue(appointment.startAt));
+  const [startAt, setStartAt] = useState(toBrazilLocalInput(appointment.startAt));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,7 +61,7 @@ export function AppointmentRow({
   }
 
   async function handleReschedule() {
-    const start = new Date(startAt);
+    const start = fromBrazilLocalInput(startAt);
     const end = new Date(start.getTime() + slotDurationMinutes * 60_000);
     const ok = await patch({
       dentistId,
@@ -87,7 +80,7 @@ export function AppointmentRow({
     <>
       <tr className="border-t align-top">
         <td className="p-3">
-          {new Date(appointment.startAt).toLocaleString("pt-BR")}
+          {formatDateTime(appointment.startAt)}
         </td>
         <td className="p-3">{appointment.patient.name}</td>
         <td className="p-3">{appointment.dentist.user.name}</td>

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { formatDateTime } from "@/lib/dates";
 
 type Message = {
   id: string;
@@ -40,7 +41,7 @@ export function ContactMessagesList({ messages }: { messages: Message[] }) {
               <p className="font-medium">{m.name}</p>
               <p className="text-xs text-slate-500">
                 {[m.email, m.phone].filter(Boolean).join(" · ") || "sem contato informado"} ·{" "}
-                {new Date(m.createdAt).toLocaleString("pt-BR")}
+                {formatDateTime(m.createdAt)}
               </p>
             </div>
             <button

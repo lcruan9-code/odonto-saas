@@ -8,6 +8,7 @@ type Dentist = {
   active: boolean;
   publicVisible: boolean;
   publicBio: string | null;
+  photoUrl: string | null;
   specialty: string | null;
   cro: string | null;
   user: { name: string; email: string };
@@ -18,22 +19,42 @@ export function DentistRow({ dentist }: { dentist: Dentist }) {
   const [saving, setSaving] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
   const [bio, setBio] = useState(dentist.publicBio ?? "");
+  const [photoUrl, setPhotoUrl] = useState(dentist.photoUrl ?? "");
+  const [error, setError] = useState<string | null>(null);
 
   async function patch(body: Record<string, unknown>) {
     setSaving(true);
-    await fetch(`/api/dentists/${dentist.id}`, {
+    setError(null);
+    const res = await fetch(`/api/dentists/${dentist.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     setSaving(false);
+    if (!res.ok) {
+      setError("Não foi possível salvar. Verifique a URL da foto.");
+      return false;
+    }
     router.refresh();
+    return true;
   }
 
   return (
     <>
       <tr className="border-t align-top">
-        <td className="p-3">{dentist.user.name}</td>
+        <td className="p-3">
+          <div className="flex items-center gap-2">
+            {dentist.photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={dentist.photoUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+            ) : (
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold">
+                {dentist.user.name.replace(/^Dr[a]?\.\s*/, "").charAt(0)}
+              </span>
+            )}
+            <span className="font-medium">{dentist.user.name}</span>
+          </div>
+        </td>
         <td className="p-3">{dentist.user.email}</td>
         <td className="p-3">{dentist.specialty || "—"}</td>
         <td className="p-3">{dentist.cro || "—"}</td>
@@ -75,7 +96,7 @@ export function DentistRow({ dentist }: { dentist: Dentist }) {
               onClick={() => setEditingBio((v) => !v)}
               className="rounded border px-2 py-1 text-xs hover:bg-slate-100"
             >
-              Bio pública
+              Perfil público
             </button>
           </div>
         </td>
@@ -94,14 +115,26 @@ export function DentistRow({ dentist }: { dentist: Dentist }) {
                   className="rounded border p-2 text-sm"
                 />
               </label>
+              <label className="flex w-full max-w-md flex-col gap-1 text-xs">
+                Foto (URL http(s):// ou caminho local, ex: /images/demo/dentista-ana.jpg)
+                <input
+                  value={photoUrl}
+                  onChange={(e) => setPhotoUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="rounded border p-2 text-sm"
+                />
+              </label>
               <button
-                onClick={() => patch({ publicBio: bio }).then(() => setEditingBio(false))}
+                onClick={() =>
+                  patch({ publicBio: bio, photoUrl }).then((ok) => ok && setEditingBio(false))
+                }
                 disabled={saving}
                 className="rounded bg-primary px-3 py-2 text-sm text-white disabled:opacity-50"
               >
-                Salvar bio
+                Salvar perfil
               </button>
             </div>
+            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
           </td>
         </tr>
       )}
