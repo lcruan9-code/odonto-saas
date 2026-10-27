@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { appointmentSchema } from "@/lib/validation";
 import { notifyAppointmentCreated } from "@/lib/notifications";
 import { isWriteConflict, SCHEDULING_CONFLICT_MESSAGE } from "@/lib/scheduling";
+import { blockedMessage, findBlockConflict } from "@/lib/availability";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -66,6 +67,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Paciente inválido" }, { status: 400 });
   }
 
+  if (data.serviceId) {
+    const service = await prisma.service.findFirst({ where: { id: data.serviceId, clinicId } });
+    if (!service) {
+      return NextResponse.json({ error: "Serviço inválido" }, { status: 400 });
+    }
+  }
+
+  let blockReason: string | null = null;
   let appointment;
   try {
     appointment = await prisma.$transaction(
@@ -82,6 +91,17 @@ export async function POST(req: NextRequest) {
           throw new Error("CONFLICT");
         }
 
+        const block = await findBlockConflict(tx, {
+          clinicId,
+          dentistId: data.dentistId,
+          startAt: data.startAt,
+          endAt: data.endAt,
+        });
+        if (block) {
+          blockReason = block.reason;
+          throw new Error("BLOCKED");
+        }
+
         return tx.appointment.create({
           data: { ...data, clinicId },
           include: { patient: true, dentist: { include: { user: true } }, clinic: true },
@@ -95,6 +115,9 @@ export async function POST(req: NextRequest) {
         { error: "Dentista já possui agendamento nesse horário" },
         { status: 409 }
       );
+    }
+    if (err instanceof Error && err.message === "BLOCKED") {
+      return NextResponse.json({ error: blockedMessage(blockReason) }, { status: 409 });
     }
     if (isWriteConflict(err)) {
       return NextResponse.json({ error: SCHEDULING_CONFLICT_MESSAGE }, { status: 409 });

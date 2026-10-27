@@ -120,6 +120,14 @@ const NOTES_BY_DENTIST = [
   ["Tratamento de canal — sessão 1", "Tratamento de canal — sessão 2", "Avaliação endodôntica"],
 ];
 
+// Serviço principal de cada dentista (mesma ordem de DENTISTS).
+const SERVICE_BY_DENTIST = [
+  "Avaliação e Limpeza",
+  "Ortodontia",
+  "Implantes Dentários",
+  "Tratamento de Canal",
+];
+
 // Horários de Brasília (UTC-3) convertidos para UTC.
 function brazilTime(dayOffset: number, hhmm: string, base: Date) {
   const [h, m] = hhmm.split(":").map(Number);
@@ -234,18 +242,28 @@ export async function runDemoSeed(prisma: PrismaClient) {
     }
   }
 
+  const serviceIdByName = new Map<string, string>();
   for (const [i, [name, description]] of SERVICES.entries()) {
     const existing = await prisma.service.findFirst({ where: { clinicId: clinic.id, name } });
-    if (existing) {
-      await prisma.service.update({
-        where: { id: existing.id },
-        data: { description, order: i, active: true },
-      });
-    } else {
-      await prisma.service.create({
-        data: { clinicId: clinic.id, name, description, order: i },
-      });
-    }
+    const service = existing
+      ? await prisma.service.update({
+          where: { id: existing.id },
+          data: { description, order: i, active: true },
+        })
+      : await prisma.service.create({
+          data: { clinicId: clinic.id, name, description, order: i },
+        });
+    serviceIdByName.set(name, service.id);
+  }
+  const serviceForDentist = (index: number) =>
+    serviceIdByName.get(SERVICE_BY_DENTIST[index % SERVICE_BY_DENTIST.length]) ?? null;
+
+  // Consultas de demonstração criadas antes do campo de serviço existir.
+  for (const [index, dentistId] of dentistIds.entries()) {
+    await prisma.appointment.updateMany({
+      where: { clinicId: clinic.id, dentistId, serviceId: null },
+      data: { serviceId: serviceForDentist(index) },
+    });
   }
 
   const existingPatients = await prisma.patient.findMany({
@@ -293,6 +311,7 @@ export async function runDemoSeed(prisma: PrismaClient) {
     clinicId: string;
     dentistId: string;
     patientId: string;
+    serviceId: string | null;
     startAt: Date;
     endAt: Date;
     status: AppointmentStatus;
@@ -342,6 +361,7 @@ export async function runDemoSeed(prisma: PrismaClient) {
             clinicId: clinic.id,
             dentistId,
             patientId: patientIds[patientCursor % patientIds.length],
+            serviceId: serviceForDentist(dentistIndex),
             startAt,
             endAt,
             status,

@@ -1,18 +1,118 @@
 import Link from "next/link";
+import type { DayOfWeek } from "@prisma/client";
 import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getBrazilDayRange } from "@/lib/dates";
+import { ownDentistId } from "@/lib/staff";
+import { AgendaCalendar } from "./agenda-calendar-loader";
 import { AppointmentRow } from "./appointment-row";
 import { NewAppointmentForm } from "./new-appointment-form";
+
+const WEEKDAY_INDEX: Record<DayOfWeek, number> = {
+  SUNDAY: 0,
+  MONDAY: 1,
+  TUESDAY: 2,
+  WEDNESDAY: 3,
+  THURSDAY: 4,
+  FRIDAY: 5,
+  SATURDAY: 6,
+};
 
 export default async function AgendaPage({
   searchParams,
 }: {
-  searchParams: { periodo?: string };
+  searchParams: { periodo?: string; view?: string };
 }) {
   const session = await requireSession();
   const clinicId = session.user.clinicId;
-  const past = searchParams.periodo === "anteriores";
+  const listView = searchParams.view === "lista";
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Agenda</h1>
+        <div className="inline-flex rounded-full border border-slate-200 bg-white p-1 text-sm">
+          {[
+            { href: "/dashboard/agenda", label: "Calendário", active: !listView },
+            { href: "/dashboard/agenda?view=lista", label: "Lista", active: listView },
+          ].map((tab) => (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className={`rounded-full px-4 py-1.5 font-medium ${
+                tab.active ? "bg-navy text-white" : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {listView ? (
+        <AgendaList clinicId={clinicId} past={searchParams.periodo === "anteriores"} />
+      ) : (
+        <CalendarView clinicId={clinicId} session={session} />
+      )}
+    </div>
+  );
+}
+
+async function CalendarView({
+  clinicId,
+  session,
+}: {
+  clinicId: string;
+  session: Awaited<ReturnType<typeof requireSession>>;
+}) {
+  const [dentists, patients, services, workingHours, clinic, own] = await Promise.all([
+    prisma.dentist.findMany({
+      where: { clinicId, active: true },
+      include: { user: { select: { name: true } }, schedules: true },
+      orderBy: { user: { name: "asc" } },
+    }),
+    prisma.patient.findMany({
+      where: { clinicId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.service.findMany({
+      where: { clinicId, active: true },
+      select: { id: true, name: true },
+      orderBy: [{ order: "asc" }, { name: "asc" }],
+    }),
+    prisma.workingHour.findMany({ where: { clinicId, isActive: true } }),
+    prisma.clinic.findUnique({ where: { id: clinicId }, select: { slotDurationMinutes: true } }),
+    ownDentistId(session),
+  ]);
+
+  return (
+    <AgendaCalendar
+      dentists={dentists.map((d) => ({
+        id: d.id,
+        name: d.user.name,
+        color: d.color,
+        schedules: d.schedules.map((s) => ({
+          dayOfWeek: WEEKDAY_INDEX[s.dayOfWeek],
+          startTime: s.startTime,
+          endTime: s.endTime,
+          isActive: s.isActive,
+        })),
+      }))}
+      patients={patients}
+      services={services}
+      clinicHours={workingHours.map((h) => ({
+        daysOfWeek: [WEEKDAY_INDEX[h.dayOfWeek]],
+        startTime: h.startTime,
+        endTime: h.endTime,
+      }))}
+      slotDurationMinutes={clinic?.slotDurationMinutes ?? 30}
+      ownDentistId={own}
+    />
+  );
+}
+
+async function AgendaList({ clinicId, past }: { clinicId: string; past: boolean }) {
   const { start: todayStart } = getBrazilDayRange();
 
   const [appointments, patients, dentists, clinic] = await Promise.all([
@@ -36,10 +136,6 @@ export default async function AgendaPage({
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Agenda</h1>
-      </div>
-
       <div className="mb-4">
         <NewAppointmentForm
           patients={patientOptions}
@@ -50,8 +146,8 @@ export default async function AgendaPage({
 
       <div className="mb-3 inline-flex rounded-full border border-slate-200 bg-white p-1 text-sm">
         {[
-          { href: "/dashboard/agenda", label: "A partir de hoje", active: !past },
-          { href: "/dashboard/agenda?periodo=anteriores", label: "Anteriores", active: past },
+          { href: "/dashboard/agenda?view=lista", label: "A partir de hoje", active: !past },
+          { href: "/dashboard/agenda?view=lista&periodo=anteriores", label: "Anteriores", active: past },
         ].map((tab) => (
           <Link
             key={tab.href}

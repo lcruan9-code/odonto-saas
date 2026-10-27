@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { appointmentUpdateSchema } from "@/lib/validation";
 import { notifyAppointmentCreated } from "@/lib/notifications";
 import { isWriteConflict, SCHEDULING_CONFLICT_MESSAGE } from "@/lib/scheduling";
+import { blockedMessage, findBlockConflict } from "@/lib/availability";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -48,9 +49,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
   }
 
+  if (data.serviceId) {
+    const service = await prisma.service.findFirst({ where: { id: data.serviceId, clinicId } });
+    if (!service) {
+      return NextResponse.json({ error: "Serviço inválido" }, { status: 400 });
+    }
+  }
+
   const timeOrDentistChanged =
     data.dentistId !== undefined || data.startAt !== undefined || data.endAt !== undefined;
 
+  let blockReason: string | null = null;
   let appointment;
   try {
     appointment = await prisma.$transaction(
@@ -68,6 +77,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           if (conflict) {
             throw new Error("CONFLICT");
           }
+
+          const block = await findBlockConflict(tx, { clinicId, dentistId, startAt, endAt });
+          if (block) {
+            blockReason = block.reason;
+            throw new Error("BLOCKED");
+          }
         }
 
         return tx.appointment.update({
@@ -78,6 +93,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             endAt,
             status: data.status ?? undefined,
             notes: data.notes ?? undefined,
+            serviceId: data.serviceId === undefined ? undefined : data.serviceId,
           },
           include: { patient: true, dentist: { include: { user: true } }, clinic: true },
         });
@@ -90,6 +106,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         { error: "Dentista já possui agendamento nesse horário" },
         { status: 409 }
       );
+    }
+    if (err instanceof Error && err.message === "BLOCKED") {
+      return NextResponse.json({ error: blockedMessage(blockReason) }, { status: 409 });
     }
     if (isWriteConflict(err)) {
       return NextResponse.json({ error: SCHEDULING_CONFLICT_MESSAGE }, { status: 409 });

@@ -41,11 +41,13 @@ export const appointmentSchema = z.object({
   dentistId: z.string().min(1),
   startAt: z.coerce.date(),
   endAt: z.coerce.date(),
+  serviceId: z.string().min(1).nullable().optional(),
   notes: z.string().optional(),
 });
 
 export const appointmentUpdateSchema = z.object({
   dentistId: z.string().min(1).optional(),
+  serviceId: z.string().min(1).nullable().optional(),
   startAt: z.coerce.date().optional(),
   endAt: z.coerce.date().optional(),
   status: z
