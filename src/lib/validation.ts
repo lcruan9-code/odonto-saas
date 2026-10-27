@@ -65,16 +65,24 @@ export const patientUpdateSchema = z.object({
 });
 
 export const dentistCreateSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(6),
-  specialty: z.string().optional(),
-  cro: z.string().optional(),
+  name: z.string().trim().min(2, "Informe o nome"),
+  email: z.string().trim().toLowerCase().email("E-mail inválido"),
+  password: z.string().min(6, "A senha precisa de ao menos 6 caracteres"),
+  specialty: z.string().trim().max(120).optional(),
+  cro: z.string().trim().max(40).optional(),
+  color: hexColor,
+  publicVisible: z.boolean().optional(),
+  publicBio: z.string().max(1000).optional(),
+  photoUrl: safeImageUrl,
 });
 
 export const dentistUpdateSchema = z.object({
-  specialty: z.string().optional(),
-  cro: z.string().optional(),
+  name: z.string().trim().min(2, "Informe o nome").optional(),
+  email: z.string().trim().toLowerCase().email("E-mail inválido").optional(),
+  password: z.string().min(6, "A senha precisa de ao menos 6 caracteres").optional().or(z.literal("")),
+  specialty: z.string().trim().max(120).optional(),
+  cro: z.string().trim().max(40).optional(),
+  color: hexColor,
   active: z.boolean().optional(),
   publicVisible: z.boolean().optional(),
   publicBio: z.string().max(1000).optional(),
@@ -188,4 +196,9 @@ export const workingHourSchema = z.object({
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime: z.string().regex(/^\d{2}:\d{2}$/),
   isActive: z.boolean().optional(),
+});
+
+// Cadastro do profissional já com a grade semanal (opcional).
+export const dentistCreateWithScheduleSchema = dentistCreateSchema.extend({
+  schedule: dentistScheduleSchema.optional(),
 });

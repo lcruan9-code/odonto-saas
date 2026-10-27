@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { dentistCreateSchema } from "@/lib/validation";
+import { dentistCreateWithScheduleSchema } from "@/lib/validation";
+import { nextDentistColor, replaceDentistSchedule } from "@/lib/dentist-schedule";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -13,7 +14,10 @@ export async function GET() {
 
   const dentists = await prisma.dentist.findMany({
     where: { clinicId: session.user.clinicId },
-    include: { user: true },
+    include: {
+      user: { select: { id: true, name: true, email: true, active: true } },
+      schedules: true,
+    },
     orderBy: { user: { name: "asc" } },
   });
 
@@ -29,12 +33,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Acesso restrito a administradores" }, { status: 403 });
   }
 
-  const body = await req.json();
-  const parsed = dentistCreateSchema.safeParse(body);
+  const parsed = dentistCreateWithScheduleSchema.safeParse(await req.json());
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    const message = parsed.error.issues[0]?.message ?? "Dados inválidos";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
-  const { name, email, password, specialty, cro } = parsed.data;
+  const { name, email, password, schedule, color, ...profile } = parsed.data;
+  const clinicId = session.user.clinicId;
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
@@ -43,22 +48,29 @@ export async function POST(req: NextRequest) {
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  const dentist = await prisma.user.create({
-    data: {
-      clinicId: session.user.clinicId,
-      name,
-      email,
-      passwordHash,
-      role: "DENTIST",
-      dentist: {
-        create: {
-          clinicId: session.user.clinicId,
-          specialty,
-          cro,
-        },
+  const dentist = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: { clinicId, name, email, passwordHash, role: "DENTIST" },
+    });
+    const created = await tx.dentist.create({
+      data: {
+        clinicId,
+        userId: user.id,
+        specialty: profile.specialty || null,
+        cro: profile.cro || null,
+        publicBio: profile.publicBio || null,
+        photoUrl: profile.photoUrl || null,
+        publicVisible: profile.publicVisible ?? true,
+        color: color || (await nextDentistColor(tx, clinicId)),
       },
-    },
-    include: { dentist: true },
+    });
+    if (schedule) {
+      await replaceDentistSchedule(tx, { clinicId, dentistId: created.id, days: schedule });
+    }
+    return tx.dentist.findUniqueOrThrow({
+      where: { id: created.id },
+      include: { user: { select: { name: true, email: true } }, schedules: true },
+    });
   });
 
   return NextResponse.json(dentist, { status: 201 });
