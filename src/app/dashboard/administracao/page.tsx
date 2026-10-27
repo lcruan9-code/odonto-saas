@@ -2,18 +2,26 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ClinicSettingsForm } from "./clinic-settings-form";
+import { BrandingForm } from "./branding-form";
+import { ServicesManager } from "./services-manager";
+import { PublishToggle } from "./publish-toggle";
 
 export default async function AdministracaoPage() {
   const session = await getServerSession(authOptions);
   const isAdmin = session!.user.role === "ADMIN";
 
-  const [clinic, userCount, dentistCount, patientCount, appointmentCount] = await Promise.all([
-    prisma.clinic.findUnique({ where: { id: session!.user.clinicId } }),
-    prisma.user.count({ where: { clinicId: session!.user.clinicId } }),
-    prisma.dentist.count({ where: { clinicId: session!.user.clinicId, active: true } }),
-    prisma.patient.count({ where: { clinicId: session!.user.clinicId } }),
-    prisma.appointment.count({ where: { clinicId: session!.user.clinicId } }),
-  ]);
+  const [clinic, userCount, dentistCount, patientCount, appointmentCount, services] =
+    await Promise.all([
+      prisma.clinic.findUnique({ where: { id: session!.user.clinicId } }),
+      prisma.user.count({ where: { clinicId: session!.user.clinicId } }),
+      prisma.dentist.count({ where: { clinicId: session!.user.clinicId, active: true } }),
+      prisma.patient.count({ where: { clinicId: session!.user.clinicId } }),
+      prisma.appointment.count({ where: { clinicId: session!.user.clinicId } }),
+      prisma.service.findMany({
+        where: { clinicId: session!.user.clinicId },
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      }),
+    ]);
 
   if (!clinic) return null;
 
@@ -51,6 +59,35 @@ export default async function AdministracaoPage() {
         }}
         canEdit={isAdmin}
       />
+
+      <h2 className="mb-2 mt-8 text-lg font-medium">Identidade visual (home pública)</h2>
+      <BrandingForm
+        branding={{
+          description: clinic.description,
+          logoUrl: clinic.logoUrl,
+          coverImageUrl: clinic.coverImageUrl,
+          primaryColor: clinic.primaryColor,
+          secondaryColor: clinic.secondaryColor,
+          accentColor: clinic.accentColor,
+          ctaText: clinic.ctaText,
+        }}
+        canEdit={isAdmin}
+      />
+
+      <h2 className="mb-2 mt-8 text-lg font-medium">Serviços</h2>
+      <ServicesManager
+        services={services.map((s) => ({
+          id: s.id,
+          name: s.name,
+          description: s.description,
+          active: s.active,
+          order: s.order,
+        }))}
+        canEdit={isAdmin}
+      />
+
+      <h2 className="mb-2 mt-8 text-lg font-medium">Publicação</h2>
+      <PublishToggle slug={clinic.slug} initialPublished={clinic.published} canEdit={isAdmin} />
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { notifyAppointmentCreated } from "@/lib/notifications";
+import { isWriteConflict, SCHEDULING_CONFLICT_MESSAGE } from "@/lib/scheduling";
 
 const publicBookingSchema = z.object({
   clinicId: z.string().min(1),
@@ -37,18 +39,6 @@ export async function POST(req: NextRequest) {
 
   const endAt = new Date(startAt.getTime() + clinic.slotDurationMinutes * 60_000);
 
-  const conflict = await prisma.appointment.findFirst({
-    where: {
-      dentistId,
-      status: { notIn: ["CANCELLED"] },
-      startAt: { lt: endAt },
-      endAt: { gt: startAt },
-    },
-  });
-  if (conflict) {
-    return NextResponse.json({ error: "Horário indisponível" }, { status: 409 });
-  }
-
   let patient = await prisma.patient.findFirst({
     where: { clinicId, contacts: { some: { value: contactValue } } },
   });
@@ -63,10 +53,40 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const appointment = await prisma.appointment.create({
-    data: { clinicId, dentistId, patientId: patient.id, startAt, endAt },
-    include: { dentist: { include: { user: true } }, clinic: true },
-  });
+  const patientId = patient.id;
+
+  let appointment;
+  try {
+    appointment = await prisma.$transaction(
+      async (tx) => {
+        const conflict = await tx.appointment.findFirst({
+          where: {
+            dentistId,
+            status: { notIn: ["CANCELLED"] },
+            startAt: { lt: endAt },
+            endAt: { gt: startAt },
+          },
+        });
+        if (conflict) {
+          throw new Error("CONFLICT");
+        }
+
+        return tx.appointment.create({
+          data: { clinicId, dentistId, patientId, startAt, endAt },
+          include: { dentist: { include: { user: true } }, clinic: true },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    );
+  } catch (err) {
+    if (err instanceof Error && err.message === "CONFLICT") {
+      return NextResponse.json({ error: "Horário indisponível" }, { status: 409 });
+    }
+    if (isWriteConflict(err)) {
+      return NextResponse.json({ error: SCHEDULING_CONFLICT_MESSAGE }, { status: 409 });
+    }
+    throw err;
+  }
 
   await notifyAppointmentCreated({
     patientName,

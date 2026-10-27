@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { Prisma } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { appointmentSchema } from "@/lib/validation";
 import { notifyAppointmentCreated } from "@/lib/notifications";
+import { isWriteConflict, SCHEDULING_CONFLICT_MESSAGE } from "@/lib/scheduling";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -64,25 +66,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Paciente inválido" }, { status: 400 });
   }
 
-  const conflict = await prisma.appointment.findFirst({
-    where: {
-      dentistId: data.dentistId,
-      status: { notIn: ["CANCELLED"] },
-      startAt: { lt: data.endAt },
-      endAt: { gt: data.startAt },
-    },
-  });
-  if (conflict) {
-    return NextResponse.json(
-      { error: "Dentista já possui agendamento nesse horário" },
-      { status: 409 }
-    );
-  }
+  let appointment;
+  try {
+    appointment = await prisma.$transaction(
+      async (tx) => {
+        const conflict = await tx.appointment.findFirst({
+          where: {
+            dentistId: data.dentistId,
+            status: { notIn: ["CANCELLED"] },
+            startAt: { lt: data.endAt },
+            endAt: { gt: data.startAt },
+          },
+        });
+        if (conflict) {
+          throw new Error("CONFLICT");
+        }
 
-  const appointment = await prisma.appointment.create({
-    data: { ...data, clinicId },
-    include: { patient: true, dentist: { include: { user: true } }, clinic: true },
-  });
+        return tx.appointment.create({
+          data: { ...data, clinicId },
+          include: { patient: true, dentist: { include: { user: true } }, clinic: true },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    );
+  } catch (err) {
+    if (err instanceof Error && err.message === "CONFLICT") {
+      return NextResponse.json(
+        { error: "Dentista já possui agendamento nesse horário" },
+        { status: 409 }
+      );
+    }
+    if (isWriteConflict(err)) {
+      return NextResponse.json({ error: SCHEDULING_CONFLICT_MESSAGE }, { status: 409 });
+    }
+    throw err;
+  }
 
   await notifyAppointmentCreated({
     patientName: appointment.patient.name,

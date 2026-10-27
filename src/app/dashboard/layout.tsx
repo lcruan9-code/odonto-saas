@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { SignOutButton } from "./sign-out-button";
 
 const NAV = [
+  { href: "/dashboard", label: "Início" },
   { href: "/dashboard/agenda", label: "Agenda" },
   { href: "/dashboard/pacientes", label: "Pacientes" },
   { href: "/dashboard/dentistas", label: "Dentistas" },

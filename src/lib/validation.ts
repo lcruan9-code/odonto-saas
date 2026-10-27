@@ -1,5 +1,24 @@
 import { z } from "zod";
 
+const hexColor = z
+  .string()
+  .regex(/^#[0-9a-fA-F]{6}$/, "Cor inválida, use o formato #RRGGBB")
+  .optional()
+  .or(z.literal(""));
+
+// Aceita apenas http(s) e recusa URLs absurdamente longas; evita depender de
+// um serviço de upload que o projeto ainda não tem configurado.
+const safeImageUrl = z
+  .string()
+  .trim()
+  .max(2048)
+  .optional()
+  .or(z.literal(""))
+  .refine(
+    (value) => !value || /^https?:\/\//i.test(value),
+    "A URL da imagem deve começar com http:// ou https://"
+  );
+
 export const patientSchema = z.object({
   name: z.string().min(2),
   cpf: z.string().optional(),
@@ -55,6 +74,8 @@ export const dentistUpdateSchema = z.object({
   specialty: z.string().optional(),
   cro: z.string().optional(),
   active: z.boolean().optional(),
+  publicVisible: z.boolean().optional(),
+  publicBio: z.string().max(1000).optional(),
 });
 
 export const clinicUpdateSchema = z.object({
@@ -63,6 +84,38 @@ export const clinicUpdateSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   address: z.string().optional(),
   slotDurationMinutes: z.coerce.number().int().min(5).max(240).optional(),
+});
+
+export const clinicBrandingSchema = z.object({
+  description: z.string().max(500).optional(),
+  logoUrl: safeImageUrl,
+  coverImageUrl: safeImageUrl,
+  primaryColor: hexColor,
+  secondaryColor: hexColor,
+  accentColor: hexColor,
+  ctaText: z.string().max(60).optional(),
+});
+
+export const clinicPublishSchema = z.object({
+  published: z.boolean(),
+});
+
+export const clinicFullUpdateSchema = clinicUpdateSchema
+  .merge(clinicBrandingSchema)
+  .merge(clinicPublishSchema.partial());
+
+export const serviceCreateSchema = z.object({
+  name: z.string().min(2).max(120),
+  description: z.string().max(500).optional(),
+  active: z.boolean().optional(),
+  order: z.coerce.number().int().min(0).max(9999).optional(),
+});
+
+export const serviceUpdateSchema = z.object({
+  name: z.string().min(2).max(120).optional(),
+  description: z.string().max(500).optional(),
+  active: z.boolean().optional(),
+  order: z.coerce.number().int().min(0).max(9999).optional(),
 });
 
 export const workingHourSchema = z.object({

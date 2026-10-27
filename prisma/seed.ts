@@ -21,12 +21,22 @@ async function main() {
       phone: "(11) 99999-0000",
       email: "contato@clinicaexemplo.com.br",
       address: "Rua Exemplo, 123",
+      description:
+        "Cuidado odontológico completo para toda a família, em um ambiente acolhedor.",
+      published: true,
       workingHours: {
         create: WEEKDAYS.map((dayOfWeek) => ({
           dayOfWeek,
           startTime: "08:00",
           endTime: "18:00",
         })),
+      },
+      services: {
+        create: [
+          { name: "Limpeza e prevenção", description: "Profilaxia e avaliação geral.", order: 0 },
+          { name: "Clínico geral", description: "Consultas e tratamentos odontológicos.", order: 1 },
+          { name: "Estética dental", description: "Clareamento e harmonização do sorriso.", order: 2 },
+        ],
       },
     },
   });

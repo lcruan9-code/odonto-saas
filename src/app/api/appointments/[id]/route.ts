@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { Prisma } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { appointmentUpdateSchema } from "@/lib/validation";
 import { notifyAppointmentCreated } from "@/lib/notifications";
+import { isWriteConflict, SCHEDULING_CONFLICT_MESSAGE } from "@/lib/scheduling";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -49,35 +51,51 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const timeOrDentistChanged =
     data.dentistId !== undefined || data.startAt !== undefined || data.endAt !== undefined;
 
-  if (timeOrDentistChanged && data.status !== "CANCELLED") {
-    const conflict = await prisma.appointment.findFirst({
-      where: {
-        id: { not: existing.id },
-        dentistId,
-        status: { notIn: ["CANCELLED"] },
-        startAt: { lt: endAt },
-        endAt: { gt: startAt },
+  let appointment;
+  try {
+    appointment = await prisma.$transaction(
+      async (tx) => {
+        if (timeOrDentistChanged && data.status !== "CANCELLED") {
+          const conflict = await tx.appointment.findFirst({
+            where: {
+              id: { not: existing.id },
+              dentistId,
+              status: { notIn: ["CANCELLED"] },
+              startAt: { lt: endAt },
+              endAt: { gt: startAt },
+            },
+          });
+          if (conflict) {
+            throw new Error("CONFLICT");
+          }
+        }
+
+        return tx.appointment.update({
+          where: { id: existing.id },
+          data: {
+            dentistId,
+            startAt,
+            endAt,
+            status: data.status ?? undefined,
+            notes: data.notes ?? undefined,
+          },
+          include: { patient: true, dentist: { include: { user: true } }, clinic: true },
+        });
       },
-    });
-    if (conflict) {
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    );
+  } catch (err) {
+    if (err instanceof Error && err.message === "CONFLICT") {
       return NextResponse.json(
         { error: "Dentista já possui agendamento nesse horário" },
         { status: 409 }
       );
     }
+    if (isWriteConflict(err)) {
+      return NextResponse.json({ error: SCHEDULING_CONFLICT_MESSAGE }, { status: 409 });
+    }
+    throw err;
   }
-
-  const appointment = await prisma.appointment.update({
-    where: { id: existing.id },
-    data: {
-      dentistId,
-      startAt,
-      endAt,
-      status: data.status ?? undefined,
-      notes: data.notes ?? undefined,
-    },
-    include: { patient: true, dentist: { include: { user: true } }, clinic: true },
-  });
 
   if (timeOrDentistChanged) {
     await notifyAppointmentCreated({

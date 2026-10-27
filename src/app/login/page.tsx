@@ -23,7 +23,7 @@ export default function LoginPage() {
       setError("E-mail ou senha inválidos");
       return;
     }
-    router.push("/dashboard/agenda");
+    router.push("/dashboard");
     router.refresh();
   }
 

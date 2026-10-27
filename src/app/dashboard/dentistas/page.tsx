@@ -37,6 +37,7 @@ export default async function DentistasPage() {
               <th className="p-3">Especialidade</th>
               <th className="p-3">CRO</th>
               <th className="p-3">Status</th>
+              <th className="p-3">Site público</th>
               {isAdmin && <th className="p-3">Ações</th>}
             </tr>
           </thead>
@@ -48,6 +49,8 @@ export default async function DentistasPage() {
                   dentist={{
                     id: d.id,
                     active: d.active,
+                    publicVisible: d.publicVisible,
+                    publicBio: d.publicBio,
                     specialty: d.specialty,
                     cro: d.cro,
                     user: { name: d.user.name, email: d.user.email },
@@ -60,12 +63,13 @@ export default async function DentistasPage() {
                   <td className="p-3">{d.specialty || "—"}</td>
                   <td className="p-3">{d.cro || "—"}</td>
                   <td className="p-3">{d.active ? "Ativo" : "Inativo"}</td>
+                  <td className="p-3">{d.publicVisible ? "Visível" : "Oculto"}</td>
                 </tr>
               )
             )}
             {dentists.length === 0 && (
               <tr>
-                <td colSpan={isAdmin ? 6 : 5} className="p-3 text-center text-slate-500">
+                <td colSpan={isAdmin ? 7 : 6} className="p-3 text-center text-slate-500">
                   Nenhum dentista cadastrado.
                 </td>
               </tr>

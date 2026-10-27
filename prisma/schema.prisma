@@ -46,6 +46,17 @@ model Clinic {
   email                String?
   address              String?
   slotDurationMinutes  Int            @default(30)
+
+  // Identidade visual e apresentação pública (home pública /clinica/[slug])
+  description          String?
+  logoUrl              String?
+  coverImageUrl        String?
+  primaryColor         String?        @default("#0A2B4E")
+  secondaryColor       String?        @default("#007A8A")
+  accentColor          String?        @default("#3BBEB8")
+  ctaText              String?        @default("Agende sua Consulta")
+  published            Boolean        @default(false)
+
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
 
@@ -54,6 +65,7 @@ model Clinic {
   dentists      Dentist[]
   appointments  Appointment[]
   workingHours  WorkingHour[]
+  services      Service[]
 }
 
 model User {
@@ -79,8 +91,25 @@ model Dentist {
   specialty  String?
   cro        String?
   active     Boolean       @default(true)
+  // Controla exibição na home pública, independente de `active` (que controla agendamento)
+  publicVisible Boolean    @default(true)
+  publicBio     String?
 
   appointments Appointment[]
+
+  @@index([clinicId])
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  clinicId    String
+  clinic      Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([clinicId])
 }
