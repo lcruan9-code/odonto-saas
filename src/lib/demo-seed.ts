@@ -17,6 +17,7 @@ const CLINIC = {
   description:
     "Odontologia completa para toda a família: prevenção, ortodontia, implantes e estética, com agendamento online e atendimento humanizado.",
   coverImageUrl: "/images/demo/hero-paciente.jpg",
+  aboutImageUrl: "/images/demo/consultorio.jpg",
   ctaText: "Agende sua Consulta",
   primaryColor: "#0A2B4E",
   secondaryColor: "#007A8A",

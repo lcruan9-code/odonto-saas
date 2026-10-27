@@ -290,3 +290,44 @@ contra um banco real:
 ## Fase 6 — Resumo final
 
 Ver resposta final enviada ao usuário nesta mesma sessão/conversa.
+
+## Iteração — empresa fictícia completa, fotos, painel no mesmo visual
+
+Pedido do usuário (feedback de teste no celular): CTAs "Agende sua consulta"
+repetidos, faltava acesso à área administrativa, sem fotos, e uma empresa
+fictícia completa e realista seguindo um fluxo (site de agendamento →
+administração). Usuário autorizou commit/push/deploy sem confirmação a partir
+daqui.
+
+- **Empresa fictícia** "Sorriso Pleno Odontologia" (`src/lib/demo-seed.ts`,
+  idempotente; migra a antiga `clinica-exemplo`, com redirect em
+  `next.config.js`). Executada em produção via `/api/seed`: 4 dentistas,
+  12 pacientes, 6 serviços, 78 consultas (passado/futuro, todos os status),
+  2 mensagens de contato.
+- **Fotos**: Unsplash License, servidas de `public/images/demo/` (sem hotlink).
+  Novos campos `Dentist.photoUrl` e `Clinic.aboutImageUrl` (migrations
+  aditivas `20261028000000_add_dentist_photo`, `20261028010000_add_clinic_about_image`,
+  aplicadas automaticamente pelo build da Vercel). Validação de URL aceita
+  `http(s)://` ou caminho local `/...` (recusa `//host`, `javascript:`, `data:`).
+- **CTAs**: um botão principal no hero; "Agendar" no header só no desktop;
+  seção "Como funciona" com rótulo distinto ("Começar agendamento").
+- **Área administrativa**: link "Área da clínica"/"Entrar" no header e rodapé
+  do site; login redesenhado com credenciais de demonstração visíveis
+  (ambiente demo — qualquer pessoa com o link consegue entrar e alterar os
+  dados de demonstração).
+- **Painel**: menu lateral azul-marinho com item ativo e menu recolhível no
+  celular, home com agenda do dia/status/próximos dias, tabelas roláveis no
+  celular, abas na agenda (a partir de hoje / anteriores).
+- **Bugs corrigidos**:
+  - Fuso horário: `/api/public/availability` montava os horários no fuso do
+    servidor (UTC na Vercel) — o expediente 08:00 aparecia como 05:00 para o
+    paciente. Agora em horário de Brasília (`src/lib/dates.ts`). Datas exibidas
+    no painel e notificações também passaram a usar `America/Sao_Paulo`.
+  - Disponibilidade não validava se o dentista era da clínica/ativo.
+  - `/api/seed` era pré-renderizado estaticamente no build (resposta fixa).
+  - Seed fazia ~200 consultas sequenciais e estourava o tempo da função.
+- **Performance**: `vercel.json` com `regions: ["gru1"]` — funções em São
+  Paulo, junto do banco (sa-east-1). Seed caiu de >60 s (timeout) para 1,3 s.
+- **Validado**: `tsc --noEmit` e `next build` limpos; capturas reais com
+  Playwright do site em produção (390 px e 1366 px) — home, agendamento,
+  login, painel (com login real) e agenda.

@@ -111,7 +111,7 @@ export function DashboardNav({
   return (
     <>
       {/* Desktop */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col justify-between bg-navy p-4 lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col justify-between self-start bg-navy p-4 lg:flex">
         <div className="flex flex-col gap-6">
           {brand}
           {links}

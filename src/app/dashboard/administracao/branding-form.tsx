@@ -7,6 +7,7 @@ type Branding = {
   description: string | null;
   logoUrl: string | null;
   coverImageUrl: string | null;
+  aboutImageUrl: string | null;
   primaryColor: string | null;
   secondaryColor: string | null;
   accentColor: string | null;
@@ -18,6 +19,7 @@ export function BrandingForm({ branding, canEdit }: { branding: Branding; canEdi
   const [description, setDescription] = useState(branding.description ?? "");
   const [logoUrl, setLogoUrl] = useState(branding.logoUrl ?? "");
   const [coverImageUrl, setCoverImageUrl] = useState(branding.coverImageUrl ?? "");
+  const [aboutImageUrl, setAboutImageUrl] = useState(branding.aboutImageUrl ?? "");
   const [primaryColor, setPrimaryColor] = useState(branding.primaryColor ?? "#0A2B4E");
   const [secondaryColor, setSecondaryColor] = useState(branding.secondaryColor ?? "#007A8A");
   const [accentColor, setAccentColor] = useState(branding.accentColor ?? "#3BBEB8");
@@ -39,6 +41,7 @@ export function BrandingForm({ branding, canEdit }: { branding: Branding; canEdi
         description,
         logoUrl,
         coverImageUrl,
+        aboutImageUrl,
         primaryColor,
         secondaryColor,
         accentColor,
@@ -87,6 +90,16 @@ export function BrandingForm({ branding, canEdit }: { branding: Branding; canEdi
         <input
           value={coverImageUrl}
           onChange={(e) => setCoverImageUrl(e.target.value)}
+          disabled={!canEdit}
+          placeholder="https://..."
+          className="rounded border p-2 disabled:bg-slate-100"
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        URL da imagem da seção &quot;Como funciona&quot; (ex: foto do consultório)
+        <input
+          value={aboutImageUrl}
+          onChange={(e) => setAboutImageUrl(e.target.value)}
           disabled={!canEdit}
           placeholder="https://..."
           className="rounded border p-2 disabled:bg-slate-100"

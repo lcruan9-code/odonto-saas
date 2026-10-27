@@ -42,6 +42,7 @@ const getPublicClinic = cache(async (slug: string) => {
       description: true,
       logoUrl: true,
       coverImageUrl: true,
+      aboutImageUrl: true,
       primaryColor: true,
       secondaryColor: true,
       accentColor: true,
@@ -120,7 +121,7 @@ export default async function ClinicHomePage({ params }: { params: { slug: strin
     (a, b) => DAY_ORDER.indexOf(a.dayOfWeek) - DAY_ORDER.indexOf(b.dayOfWeek)
   );
   const daysSummary = summarizeDays(sortedHours.map((h) => h.dayOfWeek));
-  const featured = clinic.dentists.find((d) => d.photoUrl);
+  const aboutImage = clinic.aboutImageUrl;
 
   const navLinks = [
     ...(clinic.services.length > 0 ? [{ href: "#servicos", label: "Serviços" }] : []),
@@ -254,15 +255,15 @@ export default async function ClinicHomePage({ params }: { params: { slug: strin
       {/* Como funciona */}
       <section id="como-funciona" className="scroll-mt-20 bg-slate-50 px-4 py-16 sm:px-6 sm:py-20">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 md:grid-cols-2">
-          {featured?.photoUrl && (
+          {aboutImage && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={featured.photoUrl}
-              alt={featured.user.name}
-              className="order-last mx-auto aspect-[4/5] w-full max-w-sm rounded-[2rem] object-cover shadow-xl md:order-first"
+              src={aboutImage}
+              alt={`Consultório da ${clinic.name}`}
+              className="order-last aspect-[4/3] w-full rounded-[2rem] object-cover shadow-xl md:order-first"
             />
           )}
-          <div className={featured?.photoUrl ? "" : "md:col-span-2 md:mx-auto md:max-w-2xl"}>
+          <div className={aboutImage ? "" : "md:col-span-2 md:mx-auto md:max-w-2xl"}>
             <p className="text-sm font-semibold uppercase tracking-widest" style={{ color: secondary }}>
               Agendamento online
             </p>
@@ -327,7 +328,6 @@ export default async function ClinicHomePage({ params }: { params: { slug: strin
                       src={dentist.photoUrl}
                       alt={dentist.user.name}
                       className="aspect-[4/5] w-full object-cover"
-                      loading="lazy"
                     />
                   ) : (
                     <div

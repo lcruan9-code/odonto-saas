@@ -72,12 +72,26 @@ npm run prisma:seed
 npm run dev
 ```
 
-Login de demonstração (criado pelo seed):
+### Empresa de demonstração (fictícia)
 
-- Admin: `admin@clinicaexemplo.com.br` / `admin123`
-- Dentista: `dentista@clinicaexemplo.com.br` / `dentista123`
+O seed (`src/lib/demo-seed.ts`, usado por `npm run prisma:seed` e por
+`/api/seed?key=SEED_SECRET`) cria a **Sorriso Pleno Odontologia**, uma clínica
+100% fictícia: 4 dentistas com foto, recepção, 6 serviços, 12 pacientes, agenda
+com consultas passadas e futuras em todos os status e mensagens de contato.
+É idempotente (pode rodar de novo sem duplicar).
 
-Agendamento público de demonstração: `/agendar/clinica-exemplo`
+- Site da clínica: `/clinica/sorriso-pleno` · Agendamento: `/agendar/sorriso-pleno`
+- Administração: `admin@sorrisopleno.com.br` / `admin123`
+- Recepção: `recepcao@sorrisopleno.com.br` / `recepcao123`
+- Dentista: `ana.souza@sorrisopleno.com.br` / `dentista123` (também mariana.costa,
+  rafael.almeida, bruno.martins)
+
+Os links antigos `/clinica/clinica-exemplo` e `/agendar/clinica-exemplo` redirecionam.
+
+**Fotos** em `public/images/demo/` são do [Unsplash](https://unsplash.com)
+(Unsplash License: uso livre, inclusive comercial, sem atribuição obrigatória),
+baixadas e servidas localmente para não depender de links externos. As pessoas
+nas fotos não são os profissionais fictícios citados.
 
 ## Estrutura
 
@@ -138,8 +152,8 @@ de seg-sex). Só falta ligar a Vercel a ele.
    - Volte em **Settings → Environment Variables**, adicione `NEXTAUTH_URL` com essa URL
      e clique em **Redeploy**.
 6. Testar:
-   - Login: `https://SEU-DOMINIO.vercel.app/login` com `admin@clinicaexemplo.com.br` / `admin123`
-   - Agendamento público: `https://SEU-DOMINIO.vercel.app/agendar/clinica-exemplo`
+   - Login: `https://SEU-DOMINIO.vercel.app/login` com `admin@sorrisopleno.com.br` / `admin123`
+   - Site da clínica: `https://SEU-DOMINIO.vercel.app/clinica/sorriso-pleno`
 
 ## Próximos passos
 

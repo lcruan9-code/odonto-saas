@@ -72,6 +72,7 @@ export default async function AdministracaoPage() {
           description: clinic.description,
           logoUrl: clinic.logoUrl,
           coverImageUrl: clinic.coverImageUrl,
+          aboutImageUrl: clinic.aboutImageUrl,
           primaryColor: clinic.primaryColor,
           secondaryColor: clinic.secondaryColor,
           accentColor: clinic.accentColor,

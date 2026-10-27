@@ -91,6 +91,7 @@ export const clinicBrandingSchema = z.object({
   description: z.string().max(500).optional(),
   logoUrl: safeImageUrl,
   coverImageUrl: safeImageUrl,
+  aboutImageUrl: safeImageUrl,
   primaryColor: hexColor,
   secondaryColor: hexColor,
   accentColor: hexColor,

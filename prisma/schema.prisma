@@ -51,6 +51,7 @@ model Clinic {
   description          String?
   logoUrl              String?
   coverImageUrl        String?
+  aboutImageUrl        String?
   primaryColor         String?        @default("#0A2B4E")
   secondaryColor       String?        @default("#007A8A")
   accentColor          String?        @default("#3BBEB8")
