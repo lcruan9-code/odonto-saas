@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { notifyAppointmentCreated } from "@/lib/notifications";
 import { isWriteConflict, SCHEDULING_CONFLICT_MESSAGE } from "@/lib/scheduling";
+import { findBlockConflict, isWithinWorkHours } from "@/lib/availability";
 
 const publicBookingSchema = z.object({
   clinicId: z.string().min(1),
@@ -39,6 +40,10 @@ export async function POST(req: NextRequest) {
 
   const endAt = new Date(startAt.getTime() + clinic.slotDurationMinutes * 60_000);
 
+  if (!(await isWithinWorkHours(prisma, { clinicId, dentistId, startAt, endAt }))) {
+    return NextResponse.json({ error: "Horário fora do expediente do profissional" }, { status: 409 });
+  }
+
   let patient = await prisma.patient.findFirst({
     where: { clinicId, contacts: { some: { value: contactValue } } },
   });
@@ -68,6 +73,12 @@ export async function POST(req: NextRequest) {
           },
         });
         if (conflict) {
+          throw new Error("CONFLICT");
+        }
+
+        // Bloqueio feito no painel (do profissional ou da clínica inteira).
+        const block = await findBlockConflict(tx, { clinicId, dentistId, startAt, endAt });
+        if (block) {
           throw new Error("CONFLICT");
         }
 

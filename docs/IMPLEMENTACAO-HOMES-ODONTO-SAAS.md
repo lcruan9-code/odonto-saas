@@ -331,3 +331,43 @@ daqui.
 - **Validado**: `tsc --noEmit` e `next build` limpos; capturas reais com
   Playwright do site em produção (390 px e 1366 px) — home, agendamento,
   login, painel (com login real) e agenda.
+
+## Painel administrativo white-label (7 fases)
+
+Pedido: transformar o painel em boilerplate white-label para venda do código.
+Autorizado executar as fases em sequência ("pode seguir todas as fases").
+
+1. **Config white-label**: `src/config/white-label.ts` (nome, logo, paleta,
+   cores de profissionais, contato, textos padrão, demo). Tailwind gera as
+   variáveis de cor a partir dele; dados da clínica no banco têm prioridade.
+2. **Schema**: `Dentist.color`, `DentistSchedule` (grade semanal com intervalo),
+   `TimeBlock` (bloqueio de profissional ou clínica inteira),
+   `Appointment.serviceId`. Migrations aditivas; seed preenche tudo.
+3. **Layout**: shadcn/ui (Radix), menu lateral fixo, Sheet no celular, barra
+   superior com menu do usuário; todas as páginas com `requireSession()`.
+4. **Agenda** (`/dashboard/agenda`): FullCalendar (dia/semana/mês, dia no
+   celular), cores por profissional, filtro (grade do profissional vira o
+   horário útil), clique/arraste cria agendamento ou bloqueio, arrastar
+   remarca (com reversão em erro), detalhes com status/WhatsApp/remarcar/
+   cancelar. Calendário roda em `timeZone: "UTC"` com datas já convertidas
+   para Brasília. APIs `api/agenda/events`, `api/time-blocks`.
+5. **Profissionais** (`/dashboard/dentistas`): cards com dias de atendimento;
+   Sheet com abas Dados/Horários; APIs `POST/PATCH/DELETE api/dentists`,
+   `GET/PUT api/dentists/[id]/schedule`. Exclusão só sem histórico.
+6. **Pacientes** (`/dashboard/pacientes`): TanStack Table com busca (nome sem
+   acento, telefone, e-mail), filtros por status/profissional, ordenação,
+   paginação; colunas Nome, WhatsApp (wa.me), Último serviço, Data/Hora,
+   Profissional, Status. "Último serviço" = última consulta já realizada (ou a
+   próxima, se só houver futuras). Painel lateral com edição e histórico.
+   Corrigido: `GET api/patients/[id]` expunha o `passwordHash` do dentista.
+7. **Integração com o site público**: `src/lib/availability.ts`
+   (`getWorkWindows`, `getFreeSlots`, `isWithinWorkHours`): funcionamento da
+   clínica ∩ grade do profissional − intervalo − bloqueios − consultas. O POST
+   público revalida expediente e bloqueio dentro da transação. README reescrito
+   para o comprador; `docker-compose.yml` e scripts `db:*`.
+
+Validação: `tsc` e `next build` limpos a cada fase; testes Playwright em
+produção (criar bloqueio/consulta pelo calendário, 409 em horário bloqueado,
+CRUD de profissional com login do novo usuário, 403 para perfil dentista,
+busca/filtros/ordenação/paginação de pacientes); fluxo do README executado do
+zero num PostgreSQL 16 local (migrations + seed + disponibilidade + rejeições).

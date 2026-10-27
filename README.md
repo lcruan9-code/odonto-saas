@@ -1,163 +1,191 @@
 # Odonto SaaS
 
-Plataforma SaaS para clínicas de odontologia: agendamento online, gestão de
-pacientes, horários de funcionamento por dia da semana e contatos.
+Sistema completo para clínicas odontológicas: site da clínica com agendamento
+online e painel administrativo para a equipe (agenda visual, profissionais,
+pacientes e configurações). Pensado como **white-label**: você troca nome,
+cores e logo em um único arquivo e entrega o produto com a sua marca.
+
+## O que vem pronto
+
+**Site público da clínica** (`/clinica/<slug>`)
+- Home com serviços, equipe, sobre, contato e formulário de mensagem.
+- Agendamento online (`/agendar/<slug>`) que mostra só horários realmente livres.
+
+**Painel da clínica** (`/dashboard`, com login)
+- **Início**: indicadores do dia, próximas consultas, consultas por status.
+- **Agenda**: calendário (dia, semana, mês) com cores por profissional; clique
+  num horário para agendar ou bloquear; arraste para remarcar; visão em lista.
+- **Profissionais**: cadastro com login próprio, cor na agenda, foto, mini-bio
+  e grade semanal de atendimento com intervalo.
+- **Pacientes**: tabela com busca, filtros, ordenação e paginação; botão de
+  WhatsApp; painel com dados, contatos e histórico de consultas.
+- **Administração**: dados da clínica, identidade visual, serviços, mensagens
+  do site, horário de funcionamento e publicação do site.
+
+**Perfis de acesso**: Administrador, Recepção e Dentista (o dentista vê a agenda
+e bloqueia apenas a própria agenda).
 
 ## Stack
 
-- Next.js 14 (App Router) + TypeScript
-- Prisma + PostgreSQL
-- Tailwind CSS
+- Next.js 14 (App Router) + React 18 + TypeScript
+- PostgreSQL + Prisma
+- NextAuth (login por e-mail e senha, sessão JWT)
+- Tailwind CSS + shadcn/ui (Radix) + lucide-react
+- FullCalendar (agenda) e TanStack Table (pacientes)
 - Zod (validação)
-- NextAuth (Credentials + JWT, multi-tenant por `clinicId`)
 
-## Modelo de dados (`prisma/schema.prisma`)
+## Rodando localmente
 
-- `Clinic` — tenant (multi-clínica), com `slotDurationMinutes` para o agendamento online
-- `User` / `Dentist` — usuários e dentistas por clínica
-- `Patient` / `Contact` — pacientes e seus contatos (telefone, WhatsApp, e-mail)
-- `WorkingHour` — horário de funcionamento por dia da semana
-- `Appointment` — agendamentos, com checagem de conflito por dentista
-
-## Autenticação e isolamento multi-tenant
-
-- Login em `/login` (NextAuth Credentials + bcrypt), sessão JWT com `clinicId` e `role`.
-- `middleware.ts` protege todas as rotas `/dashboard/*`.
-- Rotas internas derivam o `clinicId` da sessão — nunca confiam no valor enviado pelo cliente.
-- Cadastro de dentistas, horários e dados da clínica só podem ser alterados por `role: ADMIN`.
-
-## Funcionalidades do dashboard (CRM)
-
-- **Agenda** (`/dashboard/agenda`): lista agendamentos, cria novo agendamento (paciente +
-  dentista + horário), reagenda (troca dentista/horário com checagem de conflito) e ajusta
-  status (agendado, confirmado, concluído, faltou, cancelado) inline.
-- **Pacientes** (`/dashboard/pacientes`): cadastro e edição (nome, contato, observações).
-- **Dentistas** (`/dashboard/dentistas`, admin): cadastro (cria usuário de login + perfil),
-  ativar/desativar — dentista inativo some do agendamento interno e da página pública.
-- **Horários** (`/dashboard/horarios`, admin): edição por dia da semana (início, fim, ativo).
-- **Administração** (`/dashboard/administracao`, admin): indicadores (usuários, dentistas,
-  pacientes, agendamentos) e dados da clínica (nome, contato, duração padrão da consulta).
-
-## Agendamento público
-
-- `GET /agendar/[slug]` — página pública de booking por clínica (sem login).
-- `GET /api/public/availability` — calcula horários livres a partir de `WorkingHour`,
-  `slotDurationMinutes` e agendamentos já existentes do dentista.
-- `POST /api/public/appointments` — cria paciente (se novo, por contato) + agendamento,
-  com checagem de conflito.
-
-## Notificações
-
-- `src/lib/notifications.ts` — disparada após cada agendamento (interno e público).
-  Hoje registra em log; pronta para plugar um provedor real de e-mail (Resend/SES)
-  e WhatsApp (Meta Cloud API/Twilio) sem mudar as chamadas.
-
-## Repositórios open-source usados como referência
-
-| Repo | Stack | Pontos relevantes |
-|---|---|---|
-| [Fouzia-Oreen/DentalWell](https://github.com/Fouzia-Oreen/DentalWell_DentalClinic-Appointment-Management-SaaS) | Next.js, Prisma, PostgreSQL, Tailwind | CRM de pacientes, agendamento, billing — stack base deste projeto |
-| [emagarin074/Dently](https://github.com/emagarin074/Dently) | Python, multi-tenant | Odontograma, procedure builder, billing |
-| [AbdelazizKazoum/DentiFlow](https://github.com/AbdelazizKazoum/DentiFlow) | NestJS + Next.js | Arquitetura multi-tenant orientada a eventos |
-| [ViolettaNcl/DentalClinic](https://github.com/ViolettaNcl/DentalClinic) | ASP.NET Core | Clean architecture para gestão de pacientes/agendamentos |
-| [Thrust-Devs-Ltd/Dental-Medical-Managment-System](https://github.com/Thrust-Devs-Ltd/Dental-Medical-Managment-System) | Laravel/PHP | Odontograma, alertas por SMS, faturamento |
-
-## Setup
+Requisitos: Node.js 18.18+ (recomendado 20) e Docker (ou qualquer PostgreSQL 14+).
 
 ```bash
-cp .env.example .env
+cp .env.example .env      # ajuste se não for usar o banco do Docker
 npm install
-npm run prisma:migrate
-npm run prisma:seed
-npm run dev
+npm run db:up             # sobe o PostgreSQL local (docker-compose.yml)
+npm run db:setup          # cria as tabelas e carrega a clínica de demonstração
+npm run dev               # http://localhost:3000
 ```
 
-### Empresa de demonstração (fictícia)
+Logins da demonstração (clínica fictícia **Sorriso Pleno Odontologia**):
 
-O seed (`src/lib/demo-seed.ts`, usado por `npm run prisma:seed` e por
-`/api/seed?key=SEED_SECRET`) cria a **Sorriso Pleno Odontologia**, uma clínica
-100% fictícia: 4 dentistas com foto, recepção, 6 serviços, 12 pacientes, agenda
-com consultas passadas e futuras em todos os status e mensagens de contato.
-É idempotente (pode rodar de novo sem duplicar).
+| Perfil | E-mail | Senha |
+|---|---|---|
+| Administrador | `admin@sorrisopleno.com.br` | `admin123` |
+| Recepção | `recepcao@sorrisopleno.com.br` | `recepcao123` |
+| Dentista | `ana.souza@sorrisopleno.com.br` | `dentista123` |
 
-- Site da clínica: `/clinica/sorriso-pleno` · Agendamento: `/agendar/sorriso-pleno`
-- Administração: `admin@sorrisopleno.com.br` / `admin123`
-- Recepção: `recepcao@sorrisopleno.com.br` / `recepcao123`
-- Dentista: `ana.souza@sorrisopleno.com.br` / `dentista123` (também mariana.costa,
-  rafael.almeida, bruno.martins)
+Site da clínica: `http://localhost:3000/clinica/sorriso-pleno`
 
-Os links antigos `/clinica/clinica-exemplo` e `/agendar/clinica-exemplo` redirecionam.
+### Banco de dados
 
-**Fotos** em `public/images/demo/` são do [Unsplash](https://unsplash.com)
-(Unsplash License: uso livre, inclusive comercial, sem atribuição obrigatória),
-baixadas e servidas localmente para não depender de links externos. As pessoas
-nas fotos não são os profissionais fictícios citados.
+- **Variáveis** (`.env`):
+  - `DATABASE_URL`: conexão usada pela aplicação.
+  - `DIRECT_URL`: conexão direta usada pelas migrations. Localmente é igual à
+    `DATABASE_URL`; em provedores com pool (Supabase, Neon), use a URL do pool
+    na `DATABASE_URL` e a conexão direta na `DIRECT_URL`.
+- **Migrations** ficam em `prisma/migrations` e são aplicadas com
+  `npm run db:migrate` (o `npm run build` também aplica, o que facilita o deploy).
+- **Alterar o modelo**: edite `prisma/schema.prisma` e rode
+  `npx prisma migrate dev --name descricao-da-mudanca` para gerar a migration.
+- **Dados de demonstração**: `npm run db:seed`. O seed é idempotente (pode rodar
+  de novo sem duplicar). Em produção ele também pode ser disparado por
+  `GET /api/seed?key=<SEED_SECRET>`; sem `SEED_SECRET` definido, a rota fica desligada.
+- **Ver/editar dados**: `npm run prisma:studio`.
 
-## Estrutura
+## Personalizando a marca (white-label)
+
+Tudo fica em **`src/config/white-label.ts`**:
+
+| Campo | O que muda |
+|---|---|
+| `productName`, `productTagline`, `productDescription` | Nome e textos do produto (aba do navegador, login, página inicial, rodapé do painel) |
+| `logoUrl` | Logo do produto. `null` usa o ícone padrão. Aceita URL ou arquivo em `/public` (ex.: `"/images/logo.svg"`) |
+| `colors.primary` / `secondary` / `accent` | Paleta do sistema inteiro: o Tailwind gera as variáveis de cor a partir daqui |
+| `dentistColors` | Paleta sugerida para diferenciar profissionais na agenda |
+| `contact` | E-mail, telefone e WhatsApp comercial na página inicial (vazio = oculto) |
+| `defaults` | Texto padrão do botão de agendamento e duração padrão da consulta |
+| `demo` | Clínica de demonstração em destaque e quadro de credenciais no login |
+
+Depois de alterar, reinicie o `npm run dev` (as cores são lidas no build do CSS).
+
+**Antes de entregar a um cliente**, em `src/config/white-label.ts`:
+- `demo.showCredentialsOnLogin: false` para esconder o quadro de credenciais;
+- `demo.clinicSlug: null` para remover os atalhos da demonstração.
+
+Também troque as senhas da demonstração ou crie a clínica real direto no banco.
+
+Cada clínica pode ainda ter **identidade própria** (logo, cores, imagens e textos
+do site) em *Administração > Identidade visual*. O que a clínica salva no banco
+tem prioridade sobre o padrão do arquivo de configuração.
+
+## Como a agenda decide os horários livres
+
+O agendamento online (`/api/public/availability`) cruza, para o dia escolhido:
+
+1. **Horário de funcionamento da clínica** (*Administração > Horários*): limite
+   externo; dia fechado não tem horários.
+2. **Grade do profissional** (*Profissionais > Horários*): dias, expediente e
+   intervalo. Profissional sem grade cadastrada segue o horário da clínica.
+3. **Bloqueios** criados na agenda do painel: de um profissional ou da clínica inteira.
+4. **Consultas já marcadas** (exceto canceladas).
+
+A criação do agendamento (`/api/public/appointments`) revalida tudo isso dentro
+de uma transação serializável, então dois pacientes não conseguem pegar o mesmo
+horário. Na agenda interna, a equipe pode encaixar consultas fora da grade, mas
+nunca sobre um bloqueio ou outra consulta do mesmo profissional.
+
+Fuso: todos os horários são tratados no horário de Brasília (UTC-3), independente
+do fuso do servidor ou do navegador (`src/lib/dates.ts`).
+
+## Deploy (Vercel + PostgreSQL gerenciado)
+
+1. Crie um banco PostgreSQL (Supabase, Neon, Railway, RDS...).
+2. Importe o repositório na Vercel.
+3. Configure as variáveis de ambiente:
+   - `DATABASE_URL` e `DIRECT_URL` (veja *Banco de dados*);
+   - `NEXTAUTH_SECRET`: string aleatória longa (`openssl rand -base64 32`);
+   - `NEXTAUTH_URL`: URL pública do sistema (ex.: `https://agenda.suaclinica.com.br`);
+   - `SEED_SECRET` (opcional): libera `/api/seed` para carregar a demonstração.
+4. Faça o deploy. O build aplica as migrations automaticamente.
+
+O arquivo `vercel.json` fixa a região `gru1` (São Paulo); ajuste se o banco
+estiver em outra região, para reduzir a latência.
+
+## Estrutura do projeto
 
 ```
 src/
+  config/white-label.ts     # marca, cores e textos do produto
   app/
-    page.tsx                  # landing
-    login/                    # login (NextAuth Credentials)
-    agendar/[slug]/           # agendamento público por clínica
-    dashboard/
-      agenda/                 # agendamentos
-      pacientes/              # gestão de pacientes
-      horarios/               # horários por dia da semana
-    api/
-      auth/[...nextauth]/
-      patients/route.ts
-      appointments/route.ts
-      working-hours/route.ts
-      public/
-        clinics/[slug]/route.ts
-        availability/route.ts
-        appointments/route.ts
+    page.tsx                # página inicial do produto
+    login/                  # login
+    clinica/[slug]/         # site público da clínica
+    agendar/[slug]/         # agendamento online
+    dashboard/              # painel (agenda, dentistas, pacientes, administracao...)
+    api/                    # rotas internas (sessão) e públicas (api/public/*)
+  components/
+    ui/                     # componentes shadcn/ui
+    dashboard/              # menu lateral e barra superior do painel
   lib/
-    prisma.ts
-    auth.ts
-    validation.ts
-    notifications.ts
+    availability.ts         # horários livres, grade e bloqueios
+    dates.ts                # horário de Brasília
+    validation.ts           # schemas Zod
+    demo-seed.ts            # clínica de demonstração
+    notifications.ts        # ponto de integração para e-mail/WhatsApp
 prisma/
-  schema.prisma
-  seed.ts
-middleware.ts
+  schema.prisma             # modelo de dados
+  migrations/               # histórico de migrations
+docker-compose.yml          # PostgreSQL local
 ```
 
-## Banco de dados (já provisionado)
+### Modelo de dados (resumo)
 
-Projeto Supabase **odonto-saas** (região `sa-east-1`, ref `sbweorsknrbuhfbzctuu`) já criado,
-com o schema aplicado e dados de demonstração inseridos (clínica, admin, dentista, horários
-de seg-sex). Só falta ligar a Vercel a ele.
+- `Clinic`: a clínica (multi-clínica por `clinicId`), com identidade visual e duração da consulta.
+- `User`: acesso ao painel (`ADMIN`, `RECEPTIONIST`, `DENTIST`).
+- `Dentist`, `DentistSchedule`: profissional e sua grade semanal.
+- `WorkingHour`: funcionamento da clínica por dia da semana.
+- `TimeBlock`: bloqueios de agenda (profissional ou clínica inteira).
+- `Patient`, `Contact`: pacientes e contatos (WhatsApp, telefone, e-mail).
+- `Service`: serviços exibidos no site e vinculáveis à consulta.
+- `Appointment`: consultas, com status e serviço.
+- `ContactMessage`: mensagens do formulário do site.
 
-## Deploy pela Vercel (pelo navegador, sem terminal)
+## Segurança
 
-1. Acesse **vercel.com** → login com GitHub (se Vercel já está conectado pelo GitHub, pule
-   para o Dashboard).
-2. **Add New → Project** → selecione `lcruan9-code/odonto-saas` → branch `ccr-438bdc3f-hwaln8`.
-3. Em **Settings → Environment Variables**, adicione:
-   - `DATABASE_URL` — no Supabase, abra o projeto **odonto-saas** → **Project Settings →
-     Database → Connection string** → aba **Transaction pooler** (porta `6543`) → copie a URI
-     e substitua `[YOUR-PASSWORD]` pela senha do banco (gerada na criação do projeto, visível
-     ali mesmo ou redefinível em **Database → Reset password**)
-   - `DIRECT_URL` — mesma tela, aba **Session pooler** ou **Direct connection** (porta `5432`),
-     mesma senha
-   - `NEXTAUTH_SECRET` — qualquer string aleatória
-   - `SEED_SECRET` — qualquer string aleatória (já não é necessária para os dados de
-     demonstração, mas fica disponível para repopular se precisar)
-4. Clique em **Deploy**. O build roda `prisma migrate deploy`; como a migration inicial já foi
-   aplicada diretamente no Supabase, ele só confirma que está tudo sincronizado (não recria nada).
-5. Depois do primeiro deploy, copie a URL gerada (ex: `https://odonto-saas.vercel.app`):
-   - Volte em **Settings → Environment Variables**, adicione `NEXTAUTH_URL` com essa URL
-     e clique em **Redeploy**.
-6. Testar:
-   - Login: `https://SEU-DOMINIO.vercel.app/login` com `admin@sorrisopleno.com.br` / `admin123`
-   - Site da clínica: `https://SEU-DOMINIO.vercel.app/clinica/sorriso-pleno`
+- Toda rota interna obtém o `clinicId` da sessão, nunca do navegador: uma clínica
+  não acessa dados de outra.
+- `src/middleware.ts` protege `/dashboard/*`; alterações de cadastro e configuração
+  exigem perfil Administrador.
+- Senhas com bcrypt; usuários desativados não conseguem entrar.
 
-## Próximos passos
+## Integrações (ponto de extensão)
 
-- Provedor real de e-mail/WhatsApp em `notifications.ts` + lembrete automático (cron/job)
-- Odontograma e prontuário clínico
-- Telas de CRUD completas no dashboard (criar/editar paciente, horário, agendamento)
-- Cadastro de nova clínica (onboarding self-service)
+`src/lib/notifications.ts` é chamado a cada agendamento criado ou remarcado.
+Hoje só registra em log; é o lugar para plugar e-mail (Resend, SES) ou
+WhatsApp (Meta Cloud API, Twilio) sem mexer nas telas.
+
+## Imagens da demonstração
+
+As fotos em `public/images/demo/` são do [Unsplash](https://unsplash.com)
+(Unsplash License: uso livre, inclusive comercial). As pessoas nas fotos não são
+os profissionais fictícios da demonstração. Substitua pelas imagens da clínica real.
