@@ -19,6 +19,60 @@ Branch: `ccr-438bdc3f-hwaln8`. Repositório: `lcruan9-code/odonto-saas`.
 alterações estão no working tree local, aguardando revisão e autorização explícita,
 conforme regra obrigatória do prompt desta tarefa.
 
+> As fases acima foram autorizadas e aplicadas em produção em sessão seguinte
+> (commit, push, migration no Supabase e deploy na Vercel), incluindo correção
+> de um problema real descoberto no processo: o deploy automático da Vercel
+> (disparado pelo próprio `git push`, via integração com o GitHub) rodou
+> `prisma migrate deploy` contra produção usando o papel `app_user`, que só
+> tinha GRANT de DML e não era dono das tabelas — `ALTER TABLE`/`CREATE TABLE`
+> exigem ownership. Corrigido transferindo o ownership das 9 tabelas para
+> `app_user` (`ALTER TABLE ... OWNER TO app_user`) e resolvendo a migration
+> que ficara marcada como falha (`UPDATE "_prisma_migrations" SET
+> rolled_back_at = now()` na linha falha, mantendo a linha de sucesso
+> registrada manualmente). Isso deixa o projeto mais robusto: deploys futuros
+> não precisam mais de aplicação manual de migration via Supabase MCP antes
+> do deploy — `prisma migrate deploy` já consegue rodar sozinho no build da
+> Vercel.
+
+## Iteração seguinte — identidade visual de referência e formulário de contato
+
+A pedido do usuário, a home pública (`/clinica/[slug]`) foi redesenhada para
+seguir o estilo visual de um template de referência fornecido (paleta
+azul-marinho/petróleo/menta, cards de serviço com ícone em badge colorido,
+header com CTA em pill, hero em gradiente de marca, seção de equipe, contato
+com formulário). Como já estabelecido na Fase 3 original, a marca de
+referência ("Sorriso Vital") **não foi fixada** — o layout e a paleta
+continuam vindo dos campos configuráveis por clínica (`Clinic.primaryColor` /
+`secondaryColor` / `accentColor` / `logoUrl` / `coverImageUrl`), com a mesma
+paleta de referência como *default* quando a clínica não personaliza. Nenhuma
+imagem de terceiro foi usada: quando a clínica não tem logo/capa, o layout usa
+um ícone de dente desenhado em SVG inline (`src/components/dental-icons.tsx`)
+como placeholder, não uma foto de banco de imagens. A seção de depoimentos do
+template de referência **não foi implementada**, por decisão já registrada na
+Fase 3 original ("não criar depoimentos fictícios").
+
+Adicionado também um formulário de contato público funcional (estava na
+referência visual como "Área de contato"):
+- Novo modelo `ContactMessage` (`clinicId`, `name`, `email?`, `phone?`,
+  `message`, `createdAt`), migration aditiva
+  `prisma/migrations/20261027120000_add_contact_message`.
+- `POST /api/public/contact` (rota pública, com campo honeypot anti-bot) e
+  `GET /api/contact-messages` / `DELETE /api/contact-messages/[id]`
+  (autenticadas, `clinicId` da sessão) para o admin ver e remover mensagens —
+  nova seção "Mensagens do site" em `/dashboard/administracao`.
+
+Responsividade mobile: todas as seções usam grid responsivo Tailwind
+(`grid-cols-1` por padrão, `sm:`/`md:`/`lg:` para abrir colunas), header com
+navegação por âncora escondida abaixo de `md` (fica só logo + botão de
+agendar), textos com tamanho escalonado (`text-3xl sm:text-4xl md:text-5xl`).
+Não há ferramenta de captura de tela/browser automatizado usada nesta sessão
+para evidência visual — validado por `next build` (sem erros) e revisão de
+código das classes responsivas, mesma limitação já registrada na Fase 5
+original.
+
+Validado: `prisma validate`, `prisma generate`, `tsc --noEmit`, `next build` —
+todos sem erro.
+
 ## Fase 0 — Auditoria (achados)
 
 - Stack: Next.js 14.2.15 (App Router) + TypeScript + Prisma 5.20 + PostgreSQL + Tailwind + NextAuth v4 (Credentials, JWT).

@@ -118,6 +118,16 @@ export const serviceUpdateSchema = z.object({
   order: z.coerce.number().int().min(0).max(9999).optional(),
 });
 
+// Honeypot ("website") deve vir vazio; bots costumam preencher todo campo.
+export const contactMessageSchema = z.object({
+  clinicId: z.string().min(1),
+  name: z.string().trim().min(2).max(120),
+  email: z.string().trim().email().optional().or(z.literal("")),
+  phone: z.string().trim().max(40).optional().or(z.literal("")),
+  message: z.string().trim().min(5).max(2000),
+  website: z.string().max(0).optional().or(z.literal("")),
+});
+
 export const workingHourSchema = z.object({
   dayOfWeek: z.enum([
     "SUNDAY",

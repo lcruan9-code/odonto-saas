@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ToothIcon, SERVICE_ICONS } from "@/components/dental-icons";
+import { ContactForm } from "./contact-form";
 
 const DAY_LABELS: Record<string, string> = {
   MONDAY: "Segunda",
@@ -97,22 +99,14 @@ export default async function ClinicHomePage({ params }: { params: { slug: strin
   const secondary = clinic.secondaryColor || "#007A8A";
   const accent = clinic.accentColor || "#3BBEB8";
   const ctaText = clinic.ctaText || "Agende sua Consulta";
+  const palette = [primary, secondary, accent];
 
   const sortedHours = [...clinic.workingHours].sort(
     (a, b) => DAY_ORDER.indexOf(a.dayOfWeek) - DAY_ORDER.indexOf(b.dayOfWeek)
   );
 
   return (
-    <div
-      style={
-        {
-          "--brand-primary": primary,
-          "--brand-secondary": secondary,
-          "--brand-accent": accent,
-        } as React.CSSProperties
-      }
-      className="min-h-screen bg-white text-slate-900"
-    >
+    <div className="min-h-screen bg-white text-slate-900">
       {isPreview && (
         <div className="bg-amber-100 p-2 text-center text-sm text-amber-800">
           Prévia — este site ainda não foi publicado. Só administradores da clínica veem esta
@@ -120,8 +114,9 @@ export default async function ClinicHomePage({ params }: { params: { slug: strin
         </div>
       )}
 
-      <header className="flex items-center justify-between border-b px-6 py-4">
-        <div className="flex items-center gap-3">
+      {/* Header */}
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-white/90 px-4 py-3 backdrop-blur sm:px-8">
+        <div className="flex items-center gap-2">
           {clinic.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -132,120 +127,172 @@ export default async function ClinicHomePage({ params }: { params: { slug: strin
           ) : (
             <div
               aria-hidden
-              className="flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-white"
               style={{ backgroundColor: primary }}
             >
-              {clinic.name.charAt(0).toUpperCase()}
+              <ToothIcon className="h-6 w-6" />
             </div>
           )}
-          <span className="text-lg font-bold">{clinic.name}</span>
+          <span className="text-lg font-bold tracking-tight">{clinic.name}</span>
         </div>
+
+        <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
+          {clinic.services.length > 0 && <a href="#servicos">Serviços</a>}
+          {clinic.dentists.length > 0 && <a href="#equipe">Equipe</a>}
+          <a href="#contato">Contato</a>
+        </nav>
+
         <a
           href={`/agendar/${clinic.slug}`}
-          className="rounded-full px-5 py-2 text-sm font-medium text-white"
+          className="shrink-0 rounded-full px-4 py-2 text-sm font-semibold text-white sm:px-5 sm:py-2.5"
           style={{ backgroundColor: primary }}
         >
           {ctaText}
         </a>
       </header>
 
+      {/* Hero */}
       <section
-        className="flex flex-col items-center gap-4 px-6 py-16 text-center text-white"
+        className="px-4 py-14 sm:px-8 sm:py-20"
         style={{
-          backgroundImage: clinic.coverImageUrl
-            ? `linear-gradient(rgba(10,20,40,0.55), rgba(10,20,40,0.55)), url(${clinic.coverImageUrl})`
-            : `linear-gradient(135deg, ${primary}, ${secondary} 60%, ${accent})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundImage: `linear-gradient(120deg, ${primary}, ${secondary} 65%, ${accent})`,
         }}
       >
-        <h1 className="max-w-2xl text-3xl font-bold sm:text-4xl">{clinic.name}</h1>
-        {clinic.description && (
-          <p className="max-w-xl text-base text-white/90">{clinic.description}</p>
-        )}
-        <a
-          href={`/agendar/${clinic.slug}`}
-          className="mt-2 rounded-full bg-white px-6 py-3 font-semibold"
-          style={{ color: primary }}
-        >
-          {ctaText}
-        </a>
-      </section>
+        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 md:grid-cols-2">
+          <div className="text-white">
+            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-white/70">
+              Odontologia
+            </p>
+            <h1 className="text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">
+              {clinic.name}
+            </h1>
+            {clinic.description && (
+              <p className="mt-4 max-w-md text-base text-white/90 sm:text-lg">
+                {clinic.description}
+              </p>
+            )}
+            <a
+              href={`/agendar/${clinic.slug}`}
+              className="mt-6 inline-block rounded-full bg-white px-6 py-3 font-semibold shadow-lg"
+              style={{ color: primary }}
+            >
+              {ctaText}
+            </a>
+          </div>
 
-      {clinic.services.length > 0 && (
-        <section className="mx-auto max-w-5xl px-6 py-12">
-          <h2 className="mb-6 text-center text-2xl font-bold">Serviços</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-            {clinic.services.map((service) => (
-              <div key={service.id} className="rounded-2xl border p-5 shadow-sm">
-                <h3 className="mb-1 font-semibold" style={{ color: primary }}>
-                  {service.name}
-                </h3>
-                {service.description && (
-                  <p className="text-sm text-slate-600">{service.description}</p>
-                )}
+          <div className="flex justify-center md:justify-end">
+            {clinic.coverImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={clinic.coverImageUrl}
+                alt={`Clínica ${clinic.name}`}
+                className="aspect-[4/3] w-full max-w-md rounded-3xl object-cover shadow-2xl"
+              />
+            ) : (
+              <div className="flex aspect-[4/3] w-full max-w-md items-center justify-center rounded-3xl bg-white/10 shadow-2xl ring-1 ring-white/20">
+                <ToothIcon className="h-24 w-24 text-white/80" />
               </div>
-            ))}
+            )}
           </div>
-        </section>
-      )}
-
-      {clinic.dentists.length > 0 && (
-        <section className="bg-slate-50 px-6 py-12">
-          <h2 className="mb-6 text-center text-2xl font-bold">Nossa equipe</h2>
-          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-            {clinic.dentists.map((dentist) => (
-              <div key={dentist.id} className="rounded-2xl border bg-white p-5 shadow-sm">
-                <div
-                  aria-hidden
-                  className="mb-3 flex h-12 w-12 items-center justify-center rounded-full text-white"
-                  style={{ backgroundColor: secondary }}
-                >
-                  {dentist.user.name.charAt(0).toUpperCase()}
-                </div>
-                <h3 className="font-semibold">{dentist.user.name}</h3>
-                {(dentist.specialty || dentist.cro) && (
-                  <p className="text-sm text-slate-500">
-                    {[dentist.specialty, dentist.cro].filter(Boolean).join(" · ")}
-                  </p>
-                )}
-                {dentist.publicBio && (
-                  <p className="mt-2 text-sm text-slate-600">{dentist.publicBio}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section className="mx-auto max-w-3xl px-6 py-12">
-        <h2 className="mb-6 text-center text-2xl font-bold">Contato e horários</h2>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <div>
-            {clinic.phone && <p className="mb-1">📞 {clinic.phone}</p>}
-            {clinic.email && <p className="mb-1">✉️ {clinic.email}</p>}
-            {clinic.address && <p>📍 {clinic.address}</p>}
-          </div>
-          {sortedHours.length > 0 && (
-            <ul className="text-sm text-slate-600">
-              {sortedHours.map((wh) => (
-                <li key={wh.dayOfWeek} className="flex justify-between border-b py-1">
-                  <span>{DAY_LABELS[wh.dayOfWeek]}</span>
-                  <span>
-                    {wh.startTime} – {wh.endTime}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
       </section>
 
-      <footer
-        className="px-6 py-6 text-center text-sm text-white"
-        style={{ backgroundColor: primary }}
-      >
-        {clinic.name} {clinic.address ? `· ${clinic.address}` : ""}
+      {/* Serviços */}
+      {clinic.services.length > 0 && (
+        <section id="servicos" className="px-4 py-16 sm:px-8">
+          <div className="mx-auto max-w-6xl">
+            <h2 className="mb-10 text-center text-2xl font-bold sm:text-3xl">Nossos Serviços</h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {clinic.services.map((service, i) => {
+                const Icon = SERVICE_ICONS[i % SERVICE_ICONS.length];
+                const color = palette[i % palette.length];
+                return (
+                  <div
+                    key={service.id}
+                    className="rounded-2xl border p-6 shadow-sm transition hover:shadow-md"
+                  >
+                    <div
+                      className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-white"
+                      style={{ backgroundColor: color }}
+                    >
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <h3 className="mb-1 font-semibold">{service.name}</h3>
+                    {service.description && (
+                      <p className="text-sm text-slate-600">{service.description}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Equipe */}
+      {clinic.dentists.length > 0 && (
+        <section id="equipe" className="bg-slate-50 px-4 py-16 sm:px-8">
+          <div className="mx-auto max-w-6xl">
+            <h2 className="mb-10 text-center text-2xl font-bold sm:text-3xl">Nossa Equipe</h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {clinic.dentists.map((dentist) => (
+                <div key={dentist.id} className="rounded-2xl border bg-white p-6 shadow-sm">
+                  <div
+                    aria-hidden
+                    className="mb-3 flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white"
+                    style={{ backgroundColor: secondary }}
+                  >
+                    {dentist.user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <h3 className="font-semibold">{dentist.user.name}</h3>
+                  {(dentist.specialty || dentist.cro) && (
+                    <p className="text-sm text-slate-500">
+                      {[dentist.specialty, dentist.cro].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                  {dentist.publicBio && (
+                    <p className="mt-2 text-sm text-slate-600">{dentist.publicBio}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Contato */}
+      <section id="contato" className="px-4 py-16 sm:px-8">
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-10 md:grid-cols-2">
+          <div>
+            <h2 className="mb-4 text-2xl font-bold sm:text-3xl">Contato e horários</h2>
+            <div className="mb-6 flex flex-col gap-1 text-slate-700">
+              {clinic.phone && <p>📞 {clinic.phone}</p>}
+              {clinic.email && <p>✉️ {clinic.email}</p>}
+              {clinic.address && <p>📍 {clinic.address}</p>}
+            </div>
+            {sortedHours.length > 0 && (
+              <ul className="text-sm text-slate-600">
+                {sortedHours.map((wh) => (
+                  <li key={wh.dayOfWeek} className="flex justify-between border-b py-1.5">
+                    <span>{DAY_LABELS[wh.dayOfWeek]}</span>
+                    <span>
+                      {wh.startTime} – {wh.endTime}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="rounded-2xl border bg-slate-50 p-6">
+            <ContactForm clinicId={clinic.id} primary={primary} />
+          </div>
+        </div>
+      </section>
+
+      <footer className="px-4 py-8 text-center text-sm text-white sm:px-8" style={{ backgroundColor: primary }}>
+        <p className="font-semibold">{clinic.name}</p>
+        {clinic.address && <p className="text-white/80">{clinic.address}</p>}
       </footer>
     </div>
   );

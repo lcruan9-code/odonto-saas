@@ -5,12 +5,13 @@ import { ClinicSettingsForm } from "./clinic-settings-form";
 import { BrandingForm } from "./branding-form";
 import { ServicesManager } from "./services-manager";
 import { PublishToggle } from "./publish-toggle";
+import { ContactMessagesList } from "./contact-messages-list";
 
 export default async function AdministracaoPage() {
   const session = await getServerSession(authOptions);
   const isAdmin = session!.user.role === "ADMIN";
 
-  const [clinic, userCount, dentistCount, patientCount, appointmentCount, services] =
+  const [clinic, userCount, dentistCount, patientCount, appointmentCount, services, messages] =
     await Promise.all([
       prisma.clinic.findUnique({ where: { id: session!.user.clinicId } }),
       prisma.user.count({ where: { clinicId: session!.user.clinicId } }),
@@ -20,6 +21,11 @@ export default async function AdministracaoPage() {
       prisma.service.findMany({
         where: { clinicId: session!.user.clinicId },
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      }),
+      prisma.contactMessage.findMany({
+        where: { clinicId: session!.user.clinicId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
       }),
     ]);
 
@@ -88,6 +94,18 @@ export default async function AdministracaoPage() {
 
       <h2 className="mb-2 mt-8 text-lg font-medium">Publicação</h2>
       <PublishToggle slug={clinic.slug} initialPublished={clinic.published} canEdit={isAdmin} />
+
+      <h2 className="mb-2 mt-8 text-lg font-medium">Mensagens do site (formulário de contato)</h2>
+      <ContactMessagesList
+        messages={messages.map((m) => ({
+          id: m.id,
+          name: m.name,
+          email: m.email,
+          phone: m.phone,
+          message: m.message,
+          createdAt: m.createdAt.toISOString(),
+        }))}
+      />
     </div>
   );
 }

@@ -66,6 +66,7 @@ model Clinic {
   appointments  Appointment[]
   workingHours  WorkingHour[]
   services      Service[]
+  contactMessages ContactMessage[]
 }
 
 model User {
@@ -112,6 +113,20 @@ model Service {
   updatedAt   DateTime @updatedAt
 
   @@index([clinicId])
+}
+
+// Mensagens enviadas pelo formulário de contato da home pública
+model ContactMessage {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name      String
+  email     String?
+  phone     String?
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([clinicId, createdAt])
 }
 
 model Patient {
