@@ -1,5 +1,6 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import Link from "next/link";
+import { ChevronRight, Clock } from "lucide-react";
+import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { ClinicSettingsForm } from "./clinic-settings-form";
 import { BrandingForm } from "./branding-form";
@@ -8,22 +9,22 @@ import { PublishToggle } from "./publish-toggle";
 import { ContactMessagesList } from "./contact-messages-list";
 
 export default async function AdministracaoPage() {
-  const session = await getServerSession(authOptions);
-  const isAdmin = session!.user.role === "ADMIN";
+  const session = await requireSession();
+  const isAdmin = session.user.role === "ADMIN";
 
   const [clinic, userCount, dentistCount, patientCount, appointmentCount, services, messages] =
     await Promise.all([
-      prisma.clinic.findUnique({ where: { id: session!.user.clinicId } }),
-      prisma.user.count({ where: { clinicId: session!.user.clinicId } }),
-      prisma.dentist.count({ where: { clinicId: session!.user.clinicId, active: true } }),
-      prisma.patient.count({ where: { clinicId: session!.user.clinicId } }),
-      prisma.appointment.count({ where: { clinicId: session!.user.clinicId } }),
+      prisma.clinic.findUnique({ where: { id: session.user.clinicId } }),
+      prisma.user.count({ where: { clinicId: session.user.clinicId } }),
+      prisma.dentist.count({ where: { clinicId: session.user.clinicId, active: true } }),
+      prisma.patient.count({ where: { clinicId: session.user.clinicId } }),
+      prisma.appointment.count({ where: { clinicId: session.user.clinicId } }),
       prisma.service.findMany({
-        where: { clinicId: session!.user.clinicId },
+        where: { clinicId: session.user.clinicId },
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
       }),
       prisma.contactMessage.findMany({
-        where: { clinicId: session!.user.clinicId },
+        where: { clinicId: session.user.clinicId },
         orderBy: { createdAt: "desc" },
         take: 50,
       }),
@@ -48,6 +49,22 @@ export default async function AdministracaoPage() {
           </div>
         ))}
       </div>
+
+      <Link
+        href="/dashboard/horarios"
+        className="mb-8 flex max-w-lg items-center justify-between rounded-lg border bg-card p-4 shadow-sm transition-colors hover:bg-accent"
+      >
+        <span className="flex items-center gap-3">
+          <Clock className="h-5 w-5 text-primary" />
+          <span>
+            <span className="block font-medium">Horário de funcionamento da clínica</span>
+            <span className="block text-sm text-muted-foreground">
+              Dias e horários em que a clínica abre para agendamentos
+            </span>
+          </span>
+        </span>
+        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+      </Link>
 
       <h2 className="mb-2 text-lg font-medium">Dados da clínica</h2>
       {!isAdmin && (

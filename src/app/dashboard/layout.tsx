@@ -1,26 +1,32 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { DashboardNav } from "./dashboard-nav";
+import { requireSession } from "@/lib/session";
+import { SidebarContent } from "@/components/dashboard/sidebar";
+import { Topbar } from "@/components/dashboard/topbar";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const session = await getServerSession(authOptions);
-  const clinic = session
-    ? await prisma.clinic.findUnique({
-        where: { id: session.user.clinicId },
-        select: { name: true, slug: true },
-      })
-    : null;
+  const session = await requireSession();
+  const clinic = await prisma.clinic.findUnique({
+    where: { id: session.user.clinicId },
+    select: { name: true, slug: true, logoUrl: true },
+  });
+  const clinicSummary = clinic ?? { name: "Clínica", slug: "", logoUrl: null };
 
   return (
-    <div className="min-h-screen bg-slate-50 lg:flex">
-      <DashboardNav
-        clinicName={clinic?.name ?? "Clínica"}
-        clinicSlug={clinic?.slug ?? ""}
-        userName={session?.user.name ?? ""}
-        role={session?.user.role ?? ""}
-      />
-      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+    <div className="min-h-screen bg-muted/40">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 lg:block">
+        <SidebarContent clinic={clinicSummary} />
+      </aside>
+      <div className="lg:pl-64">
+        <Topbar
+          clinic={clinicSummary}
+          user={{
+            name: session.user.name ?? "",
+            email: session.user.email ?? "",
+            role: session.user.role,
+          }}
+        />
+        <main className="min-w-0 p-4 sm:p-6 lg:p-8">{children}</main>
+      </div>
     </div>
   );
 }

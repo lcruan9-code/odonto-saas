@@ -1,22 +1,21 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { NewDentistForm } from "./new-dentist-form";
 import { DentistRow } from "./dentist-row";
 
 export default async function DentistasPage() {
-  const session = await getServerSession(authOptions);
-  const isAdmin = session!.user.role === "ADMIN";
+  const session = await requireSession();
+  const isAdmin = session.user.role === "ADMIN";
 
   const dentists = await prisma.dentist.findMany({
-    where: { clinicId: session!.user.clinicId },
+    where: { clinicId: session.user.clinicId },
     include: { user: true },
     orderBy: { user: { name: "asc" } },
   });
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-semibold">Dentistas</h1>
+      <h1 className="mb-4 text-2xl font-semibold">Profissionais</h1>
 
       {isAdmin ? (
         <div className="mb-4">

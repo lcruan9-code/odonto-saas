@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getBrazilDayRange } from "@/lib/dates";
 import { AppointmentRow } from "./appointment-row";
@@ -11,8 +10,8 @@ export default async function AgendaPage({
 }: {
   searchParams: { periodo?: string };
 }) {
-  const session = await getServerSession(authOptions);
-  const clinicId = session!.user.clinicId;
+  const session = await requireSession();
+  const clinicId = session.user.clinicId;
   const past = searchParams.periodo === "anteriores";
   const { start: todayStart } = getBrazilDayRange();
 

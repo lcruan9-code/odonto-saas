@@ -1,5 +1,6 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
+import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { WorkingHourRow } from "./working-hour-row";
 
@@ -14,17 +15,23 @@ const DAYS: { value: string; label: string }[] = [
 ];
 
 export default async function HorariosPage() {
-  const session = await getServerSession(authOptions);
-  const isAdmin = session!.user.role === "ADMIN";
+  const session = await requireSession();
+  const isAdmin = session.user.role === "ADMIN";
 
   const workingHours = await prisma.workingHour.findMany({
-    where: { clinicId: session!.user.clinicId },
+    where: { clinicId: session.user.clinicId },
   });
 
   const byDay = new Map(workingHours.map((wh) => [wh.dayOfWeek as string, wh]));
 
   return (
     <div>
+      <Link
+        href="/dashboard/administracao"
+        className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ChevronLeft className="h-4 w-4" /> Administração
+      </Link>
       <h1 className="mb-4 text-2xl font-semibold">Horário de funcionamento</h1>
       {!isAdmin && (
         <p className="mb-4 text-sm text-slate-500">

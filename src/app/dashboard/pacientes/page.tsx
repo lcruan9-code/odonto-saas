@@ -1,13 +1,12 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { NewPatientForm } from "./new-patient-form";
 import { PatientRow } from "./patient-row";
 
 export default async function PacientesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await requireSession();
   const patients = await prisma.patient.findMany({
-    where: { clinicId: session!.user.clinicId },
+    where: { clinicId: session.user.clinicId },
     include: { contacts: true },
     orderBy: { name: "asc" },
   });

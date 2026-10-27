@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { formatDateTime, formatTime, getBrazilDayRange } from "@/lib/dates";
 import {
@@ -15,8 +14,8 @@ import { whiteLabel } from "@/config/white-label";
 const colors = whiteLabel.colors;
 
 export default async function DashboardHomePage() {
-  const session = await getServerSession(authOptions);
-  const clinicId = session!.user.clinicId;
+  const session = await requireSession();
+  const clinicId = session.user.clinicId;
   const { start, end } = getBrazilDayRange();
   const now = new Date();
 
@@ -63,7 +62,7 @@ export default async function DashboardHomePage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm text-slate-500">Olá, {session!.user.name?.split(" ")[0]} 👋</p>
+          <p className="text-sm text-slate-500">Olá, {session.user.name?.split(" ")[0]} 👋</p>
           <h1 className="text-2xl font-bold sm:text-3xl">{clinic?.name}</h1>
           <p className="text-sm text-slate-500">{formatDateTime(now, { dateStyle: "full" })}</p>
         </div>
@@ -74,15 +73,6 @@ export default async function DashboardHomePage() {
           >
             + Novo agendamento
           </Link>
-          {clinic && (
-            <Link
-              href={`/clinica/${clinic.slug}`}
-              target="_blank"
-              className="rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium hover:bg-slate-50"
-            >
-              Ver site da clínica ↗
-            </Link>
-          )}
         </div>
       </div>
 
