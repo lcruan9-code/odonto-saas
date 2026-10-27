@@ -1,55 +1,64 @@
 import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { NewPatientForm } from "./new-patient-form";
-import { PatientRow } from "./patient-row";
+import { PatientsTable, type PatientRow } from "./patients-table";
 
 export default async function PacientesPage() {
   const session = await requireSession();
-  const patients = await prisma.patient.findMany({
-    where: { clinicId: session.user.clinicId },
-    include: { contacts: true },
-    orderBy: { name: "asc" },
+  const clinicId = session.user.clinicId;
+
+  const [patients, dentists] = await Promise.all([
+    prisma.patient.findMany({
+      where: { clinicId },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        contacts: { select: { type: true, value: true, isPrimary: true } },
+        _count: { select: { appointments: true } },
+        // Consulta mais recente (passada ou já marcada): base do "último serviço".
+        appointments: {
+          orderBy: { startAt: "desc" },
+          take: 1,
+          select: {
+            startAt: true,
+            status: true,
+            service: { select: { name: true } },
+            dentist: { select: { id: true, color: true, user: { select: { name: true } } } },
+          },
+        },
+      },
+    }),
+    prisma.dentist.findMany({
+      where: { clinicId },
+      select: { id: true, user: { select: { name: true } } },
+      orderBy: { user: { name: "asc" } },
+    }),
+  ]);
+
+  const rows: PatientRow[] = patients.map((p) => {
+    const pick = (type: string) =>
+      p.contacts.find((c) => c.type === type && c.isPrimary) ??
+      p.contacts.find((c) => c.type === type);
+    const last = p.appointments[0];
+    return {
+      id: p.id,
+      name: p.name,
+      whatsapp: (pick("WHATSAPP") ?? pick("PHONE"))?.value ?? null,
+      email: pick("EMAIL")?.value ?? null,
+      appointmentCount: p._count.appointments,
+      lastService: last ? last.service?.name ?? "Consulta" : null,
+      lastAt: last ? last.startAt.toISOString() : null,
+      lastDentistId: last?.dentist.id ?? null,
+      lastDentistName: last?.dentist.user.name ?? null,
+      lastDentistColor: last?.dentist.color ?? null,
+      lastStatus: last?.status ?? null,
+    };
   });
 
   return (
-    <div>
-      <h1 className="mb-4 text-2xl font-semibold">Pacientes</h1>
-
-      <div className="mb-4">
-        <NewPatientForm />
-      </div>
-
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[520px] text-sm">
-          <thead className="bg-slate-100 text-left">
-            <tr>
-              <th className="p-3">Nome</th>
-              <th className="p-3">Contatos</th>
-              <th className="p-3">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {patients.map((p) => (
-              <PatientRow
-                key={p.id}
-                patient={{
-                  id: p.id,
-                  name: p.name,
-                  notes: p.notes,
-                  contacts: p.contacts.map((c) => ({ value: c.value })),
-                }}
-              />
-            ))}
-            {patients.length === 0 && (
-              <tr>
-                <td colSpan={3} className="p-3 text-center text-slate-500">
-                  Nenhum paciente cadastrado.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <PatientsTable
+      data={rows}
+      dentists={dentists.map((d) => ({ id: d.id, name: d.user.name }))}
+    />
   );
 }

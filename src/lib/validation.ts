@@ -57,11 +57,13 @@ export const appointmentUpdateSchema = z.object({
 });
 
 export const patientUpdateSchema = z.object({
-  name: z.string().min(2).optional(),
+  name: z.string().trim().min(2, "Informe o nome").optional(),
   cpf: z.string().optional(),
-  birthDate: z.coerce.date().optional(),
+  birthDate: z.coerce.date().nullable().optional(),
   address: z.string().optional(),
   notes: z.string().optional(),
+  // Quando enviado, substitui todos os contatos do paciente.
+  contacts: patientSchema.shape.contacts,
 });
 
 export const dentistCreateSchema = z.object({

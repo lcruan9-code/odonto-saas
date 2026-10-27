@@ -15,7 +15,15 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     include: {
       contacts: true,
       appointments: {
-        include: { dentist: { include: { user: true } } },
+        select: {
+          id: true,
+          startAt: true,
+          endAt: true,
+          status: true,
+          notes: true,
+          service: { select: { name: true } },
+          dentist: { select: { id: true, color: true, user: { select: { name: true } } } },
+        },
         orderBy: { startAt: "desc" },
       },
     },
@@ -44,13 +52,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json();
   const parsed = patientUpdateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    const message = parsed.error.issues[0]?.message ?? "Dados inválidos";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  const patient = await prisma.patient.update({
-    where: { id: existing.id },
-    data: parsed.data,
-    include: { contacts: true },
+  const { contacts, ...data } = parsed.data;
+  const patient = await prisma.$transaction(async (tx) => {
+    if (contacts) {
+      await tx.contact.deleteMany({ where: { patientId: existing.id } });
+    }
+    return tx.patient.update({
+      where: { id: existing.id },
+      data: { ...data, ...(contacts ? { contacts: { create: contacts } } : {}) },
+      include: { contacts: true },
+    });
   });
 
   return NextResponse.json(patient);

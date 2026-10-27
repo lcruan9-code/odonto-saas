@@ -48,11 +48,7 @@ export type AgendaBlock = {
   dentistId: string | null;
 };
 
-export function whatsappLink(phone: string) {
-  let digits = phone.replace(/\D/g, "");
-  if (digits.length <= 11) digits = `55${digits}`;
-  return `https://wa.me/${digits}`;
-}
+export { whatsappLink } from "@/lib/whatsapp";
 
 export async function readError(res: Response, fallback: string) {
   try {
