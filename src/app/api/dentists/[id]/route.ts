@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { dentistUpdateSchema } from "@/lib/validation";
+import { deleteReplacedAssets } from "@/lib/assets";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -67,6 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     },
     include: { user: { select: { name: true, email: true } }, schedules: true },
   });
+  await deleteReplacedAssets(dentist.clinicId, [existing.photoUrl], [dentist.photoUrl]);
 
   return NextResponse.json(dentist);
 }
@@ -98,5 +100,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   // Remove o usuário de acesso; cadastro, grade e bloqueios caem em cascata.
   await prisma.user.delete({ where: { id: dentist.userId } });
+  await deleteReplacedAssets(dentist.clinicId, [dentist.photoUrl], []);
   return NextResponse.json({ ok: true });
 }

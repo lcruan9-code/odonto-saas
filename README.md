@@ -20,7 +20,10 @@ cores e logo em um único arquivo e entrega o produto com a sua marca.
 - **Pacientes**: tabela com busca, filtros, ordenação e paginação; botão de
   WhatsApp; painel com dados, contatos e histórico de consultas.
 - **Administração**: dados da clínica, identidade visual, serviços, mensagens
-  do site, horário de funcionamento e publicação do site.
+  do site, horário de funcionamento e publicação do site, com **prévia ao vivo**
+  do site ao lado (computador ou celular) que mostra as alterações antes de salvar.
+- **Imagens por upload**: logo, capa, foto do consultório e fotos dos
+  profissionais são enviadas do computador (arrastar e soltar ou escolher arquivo).
 
 **Perfis de acesso**: Administrador, Recepção e Dentista (o dentista vê a agenda
 e bloqueia apenas a própria agenda).
@@ -98,6 +101,21 @@ Cada clínica pode ainda ter **identidade própria** (logo, cores, imagens e tex
 do site) em *Administração > Identidade visual*. O que a clínica salva no banco
 tem prioridade sobre o padrão do arquivo de configuração.
 
+## Imagens enviadas (upload)
+
+- O navegador redimensiona e comprime a imagem antes de enviar (WebP, até
+  1600 px no maior lado; logo até 512 px): uma foto de celular de 8 MB vira
+  poucas centenas de KB.
+- `POST /api/uploads` (só Administrador) confere o tipo real do arquivo
+  (JPG, PNG ou WebP; SVG é recusado) e o limite de 3 MB.
+- As imagens ficam na tabela `Asset` do próprio PostgreSQL e são servidas por
+  `GET /api/assets/<id>` com cache longo (navegador e CDN). Assim o sistema
+  funciona em qualquer hospedagem, sem contratar armazenamento de arquivos.
+- Ao trocar ou remover uma imagem e salvar, a anterior é apagada do banco.
+- Para muitas clínicas ou imagens, dá para trocar por S3, Cloudflare R2 ou
+  Vercel Blob mudando só `src/app/api/uploads/route.ts` (que devolve a URL
+  final da imagem); o resto do sistema só guarda essa URL.
+
 ## Como a agenda decide os horários livres
 
 O agendamento online (`/api/public/availability`) cruza, para o dia escolhido:
@@ -147,6 +165,9 @@ src/
     ui/                     # componentes shadcn/ui
     dashboard/              # menu lateral e barra superior do painel
   lib/
+    assets.ts               # validação e limpeza das imagens enviadas
+    image-compress.ts       # redimensiona/comprime imagem no navegador
+    public-clinic.ts        # dados públicos da clínica (site e prévia)
     availability.ts         # horários livres, grade e bloqueios
     dates.ts                # horário de Brasília
     validation.ts           # schemas Zod
@@ -169,6 +190,7 @@ docker-compose.yml          # PostgreSQL local
 - `Service`: serviços exibidos no site e vinculáveis à consulta.
 - `Appointment`: consultas, com status e serviço.
 - `ContactMessage`: mensagens do formulário do site.
+- `Asset`: imagens enviadas pelo painel.
 
 ## Segurança
 

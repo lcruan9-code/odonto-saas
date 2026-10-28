@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async headers() {
+    // A prévia só pode ser embutida pelo próprio painel (mesma origem).
+    return [{ source: "/preview/:path*", headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }] }];
+  },
   async redirects() {
     // A clínica de demonstração antiga ("clinica-exemplo") virou "sorriso-pleno";
     // mantém funcionando os links já compartilhados.

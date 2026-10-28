@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { whiteLabel } from "@/config/white-label";
+import { ImageUpload } from "@/components/image-upload";
+import { useSyncPreview } from "./preview-context";
 
 type Branding = {
   description: string | null;
@@ -30,6 +32,17 @@ export function BrandingForm({ branding, canEdit }: { branding: Branding; canEdi
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useSyncPreview({
+    description,
+    logoUrl,
+    coverImageUrl,
+    aboutImageUrl,
+    primaryColor,
+    secondaryColor,
+    accentColor,
+    ctaText,
+  });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -65,7 +78,7 @@ export function BrandingForm({ branding, canEdit }: { branding: Branding; canEdi
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex max-w-lg flex-col gap-3 rounded-md border bg-white p-4"
+      className="flex flex-col gap-4 rounded-md border bg-white p-4"
     >
       <label className="flex flex-col gap-1 text-sm">
         Descrição institucional (aparece na home pública)
@@ -78,36 +91,32 @@ export function BrandingForm({ branding, canEdit }: { branding: Branding; canEdi
           className="rounded border p-2 disabled:bg-slate-100"
         />
       </label>
-      <label className="flex flex-col gap-1 text-sm">
-        URL do logo
-        <input
-          value={logoUrl}
-          onChange={(e) => setLogoUrl(e.target.value)}
-          disabled={!canEdit}
-          placeholder="https://..."
-          className="rounded border p-2 disabled:bg-slate-100"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        URL da imagem de capa
-        <input
-          value={coverImageUrl}
-          onChange={(e) => setCoverImageUrl(e.target.value)}
-          disabled={!canEdit}
-          placeholder="https://..."
-          className="rounded border p-2 disabled:bg-slate-100"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        URL da imagem da seção &quot;Como funciona&quot; (ex: foto do consultório)
-        <input
-          value={aboutImageUrl}
-          onChange={(e) => setAboutImageUrl(e.target.value)}
-          disabled={!canEdit}
-          placeholder="https://..."
-          className="rounded border p-2 disabled:bg-slate-100"
-        />
-      </label>
+      <ImageUpload
+        id="logo-url"
+        label="Logo"
+        hint="Quadrado, de preferência com fundo transparente (PNG)."
+        aspect="square"
+        maxSide={512}
+        value={logoUrl}
+        onChange={setLogoUrl}
+        disabled={!canEdit}
+      />
+      <ImageUpload
+        id="cover-url"
+        label="Imagem de capa"
+        hint="Aparece no topo do site, ao lado do nome da clínica."
+        value={coverImageUrl}
+        onChange={setCoverImageUrl}
+        disabled={!canEdit}
+      />
+      <ImageUpload
+        id="about-url"
+        label='Imagem da seção "Como funciona"'
+        hint="Ex.: foto do consultório ou da recepção."
+        value={aboutImageUrl}
+        onChange={setAboutImageUrl}
+        disabled={!canEdit}
+      />
       <div className="grid grid-cols-3 gap-3">
         <label className="flex flex-col gap-1 text-sm">
           Cor primária
@@ -163,8 +172,7 @@ export function BrandingForm({ branding, canEdit }: { branding: Branding; canEdi
       {message && <p className="text-sm text-green-700">{message}</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
       <p className="text-xs text-slate-500">
-        Sem serviço de upload de imagens configurado neste projeto — informe URLs de imagens já
-        hospedadas (ex: um serviço de armazenamento próprio da clínica).
+        As alterações aparecem na prévia ao lado na hora; o site só muda depois de salvar.
       </p>
     </form>
   );

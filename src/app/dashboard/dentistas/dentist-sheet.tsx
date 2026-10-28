@@ -14,6 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { whiteLabel } from "@/config/white-label";
+import { ImageUpload } from "@/components/image-upload";
 import {
   ScheduleEditor,
   toEditorSchedule,
@@ -278,15 +279,15 @@ export function DentistSheet({
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="d-photo">Foto (URL)</Label>
-                  <Input
-                    id="d-photo"
-                    value={photoUrl}
-                    onChange={(e) => setPhotoUrl(e.target.value)}
-                    placeholder="https://... ou /images/equipe/foto.jpg"
-                  />
-                </div>
+                <ImageUpload
+                  id="d-photo"
+                  label="Foto"
+                  hint="Aparece na equipe do site. Prefira foto vertical, de rosto."
+                  aspect="portrait"
+                  maxSide={1000}
+                  value={photoUrl}
+                  onChange={setPhotoUrl}
+                />
                 <div className="space-y-2">
                   <Label htmlFor="d-bio">Mini-bio no site</Label>
                   <Textarea

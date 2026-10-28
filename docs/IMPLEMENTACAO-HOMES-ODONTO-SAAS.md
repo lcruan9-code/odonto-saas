@@ -371,3 +371,22 @@ produção (criar bloqueio/consulta pelo calendário, 409 em horário bloqueado,
 CRUD de profissional com login do novo usuário, 403 para perfil dentista,
 busca/filtros/ordenação/paginação de pacientes); fluxo do README executado do
 zero num PostgreSQL 16 local (migrations + seed + disponibilidade + rejeições).
+
+## Iteração — prévia ao vivo e upload de imagens
+
+Pedido: aproveitar o espaço vazio da Administração para uma prévia do site que
+acompanha as edições, e trocar URLs de foto por upload do computador.
+
+- **Prévia**: home pública extraída para `src/components/clinic-home.tsx`
+  (componente puro), usada por `/clinica/[slug]` e por `/preview/clinica`
+  (protegida por login, `X-Frame-Options: SAMEORIGIN`). A Administração
+  embute a prévia num iframe (modo computador/celular, escala automática) e
+  envia o rascunho dos formulários por `postMessage` (mesma origem); ao
+  salvar, a prévia recarrega do banco. Links e formulários não funcionam
+  dentro da prévia. Em telas < 1280 px, botão flutuante abre a prévia num Sheet.
+- **Upload**: tabela `Asset` (migration aditiva `20261030000000_asset`),
+  `POST /api/uploads` (admin, tipo real por assinatura do arquivo, até 3 MB),
+  `GET /api/assets/[id]` (cache imutável, `nosniff`, CSP). Compressão no
+  navegador (`src/lib/image-compress.ts`). Componente `ImageUpload` em logo,
+  capa, imagem "Como funciona" e foto do profissional. Imagem substituída é
+  apagada ao salvar. Sem pacote novo nem serviço externo.

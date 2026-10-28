@@ -70,6 +70,7 @@ model Clinic {
   contactMessages ContactMessage[]
   dentistSchedules DentistSchedule[]
   timeBlocks    TimeBlock[]
+  assets        Asset[]
 }
 
 model User {
@@ -236,4 +237,19 @@ model Appointment {
 
   @@index([clinicId, startAt])
   @@index([dentistId, startAt])
+}
+
+// Imagens enviadas pelo painel (logo, capa, fotos). Ficam no próprio banco
+// para o sistema funcionar em qualquer hospedagem, sem serviço externo de
+// arquivos; são servidas por /api/assets/[id] com cache longo.
+model Asset {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  mimeType  String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  @@index([clinicId])
 }

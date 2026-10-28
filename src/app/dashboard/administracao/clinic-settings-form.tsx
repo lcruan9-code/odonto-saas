@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useSyncPreview } from "./preview-context";
 
 type Clinic = {
   name: string;
@@ -21,6 +22,8 @@ export function ClinicSettingsForm({ clinic, canEdit }: { clinic: Clinic; canEdi
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useSyncPreview({ name, phone, email, address });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,7 +50,7 @@ export function ClinicSettingsForm({ clinic, canEdit }: { clinic: Clinic; canEdi
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex max-w-lg flex-col gap-3 rounded-md border bg-white p-4"
+      className="flex flex-col gap-3 rounded-md border bg-white p-4"
     >
       <label className="flex flex-col gap-1 text-sm">
         Nome da clínica
